@@ -37,25 +37,31 @@ export function InvoiceOptions({ value, onChange, issues = [] }: { value: Invoic
 }
 
 export function InvoiceAdvanced({ value, onChange, issues = [] }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void; issues?: InvoiceIssue[] }) {
+  const advancedXmlTags: Record<string, string> = {
+    budgetaryRelationshipCode: "BudgetaryRelationshipCode", comAddress: "ComAddress", note: "Note", profileCode: "ProfileCode",
+    payOrderOrgTaxCode: "PayOrderOrgTaxCode", payOrderOrgName: "PayOrderOrgName", payOrderOrgAddress: "PayOrderOrgAddress",
+    discount: "Discount", taxFreeDeductions: "TaxFreeDeductions",
+  };
+  const feeXmlTags: Record<string, string> = { name: "Name", amount: "Amount", feeRate: "FeeRate", vatRate: "VATRate", vatRateOther: "VATRateOther", vatAmount: "VATAmount", totalCharge: "TotalCharge" };
   return <details className="invoice-options">
     <summary>Trường nâng cao & phí/lệ phí</summary>
     <div className="form-grid">
-      <div className="invoice-extra-field"><strong>Extra hóa đơn · các key cố định</strong><InvoiceExtraFields value={value.extra} pattern={value.pattern} onChange={(extra) => onChange({ ...value, extra })} /></div>
+      <div className="invoice-extra-field" data-xml-tag="Extra" data-xml-scope="invoice"><strong>Extra hóa đơn · các key cố định</strong><InvoiceExtraFields value={value.extra} pattern={value.pattern} onChange={(extra) => onChange({ ...value, extra })} /></div>
       {([
         ["budgetaryRelationshipCode", "BudgetaryRelationshipCode · Mã quan hệ ngân sách"],
         ["comAddress", "ComAddress · Địa chỉ bên bán"], ["note", "Note · Ghi chú"],
         ["profileCode", "ProfileCode"], ["payOrderOrgTaxCode", "PayOrderOrgTaxCode · MST đơn vị ủy nhiệm"],
         ["payOrderOrgName", "PayOrderOrgName · Tên đơn vị ủy nhiệm"], ["payOrderOrgAddress", "PayOrderOrgAddress · Địa chỉ đơn vị ủy nhiệm"],
         ["discount", "Discount · Tỷ lệ chiết khấu chung"], ["taxFreeDeductions", "TaxFreeDeductions · Khoản giảm trừ"],
-      ] as const).map(([key, label]) => <label className="field" key={key}><span>{label}</span>
+      ] as const).map(([key, label]) => <label className="field" key={key} data-xml-tag={advancedXmlTags[key]} data-xml-scope="invoice"><span>{label}</span>
         <input value={value[key]} onChange={(e) => onChange({ ...value, [key]: e.target.value })} /></label>)}
-      {value.pattern.trim().toUpperCase()[4] === "M" && <label id={issueId("taxAuthorityCode")} className="field" data-invalid={issueMessages(issues, "taxAuthorityCode").length > 0 || undefined}><span>TaxAuthorityCode · Mã CQT MTT (tùy chọn)</span>
+      {value.pattern.trim().toUpperCase()[4] === "M" && <label id={issueId("taxAuthorityCode")} className="field" data-invalid={issueMessages(issues, "taxAuthorityCode").length > 0 || undefined} data-xml-tag="TaxAuthorityCode" data-xml-scope="invoice"><span>TaxAuthorityCode · Mã CQT MTT (tùy chọn)</span>
         <input value={value.taxAuthorityCode} onChange={(e) => onChange({ ...value, taxAuthorityCode: e.target.value })} /><FieldIssues messages={issueMessages(issues, "taxAuthorityCode")} /></label>}
     </div>
     <h4>InvoiceFees · Phí/lệ phí (tùy chọn)</h4>
     {value.fees.map((fee, i) => <div className="form-grid invoice-fee-row" key={i}>
       {([["name", "Name · Tên phí *"], ["amount", "Amount · Số tiền *"], ["feeRate", "FeeRate"], ["vatRate", "VATRate"], ["vatRateOther", "VATRateOther"], ["vatAmount", "VATAmount"], ["totalCharge", "TotalCharge"]] as const).map(([key, label]) =>
-        <label className="field" key={key}><span>{label}</span><input value={fee[key]} maxLength={key === "name" ? 100 : undefined} onChange={(e) => onChange({ ...value, fees: value.fees.map((row, index) => index === i ? { ...row, [key]: e.target.value } : row) })} /></label>)}
+        <label className="field" key={key} data-xml-tag={feeXmlTags[key]} data-xml-scope="fee" data-xml-index={i}><span>{label}</span><input value={fee[key]} maxLength={key === "name" ? 100 : undefined} onChange={(e) => onChange({ ...value, fees: value.fees.map((row, index) => index === i ? { ...row, [key]: e.target.value } : row) })} /></label>)}
       <button type="button" className="subtle-button" onClick={() => onChange({ ...value, fees: value.fees.filter((_, index) => index !== i) })}>Xóa phí</button>
     </div>)}
     <button type="button" className="subtle-button" onClick={() => onChange({ ...value, fees: [...value.fees, { name: "", amount: "", feeRate: "", vatRate: "", vatRateOther: "", vatAmount: "", totalCharge: "" }] })}>Thêm phí/lệ phí</button>

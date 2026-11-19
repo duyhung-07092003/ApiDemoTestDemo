@@ -38,6 +38,20 @@ type TemplateId =
   | "lookup-invoices";
 type AuthType = "none" | "bearer" | "basic" | "apikey";
 const InvoiceValidationContext = createContext<Map<string, string[]>>(new Map());
+type XmlScope = "invoice" | "product" | "fee";
+type XmlSelection = { tag: string; scope: XmlScope; index?: number };
+const XML_TAG_NAMES = [
+  "PayOrderOrgAddress", "BudgetaryRelationshipCode", "PayOrderOrgTaxCode", "PayOrderOrgName", "TaxFreeDeductions",
+  "CusIdentification", "AmountInWords", "DiscountAmount", "VATRateOther", "TotalCharge", "LocationAddress",
+  "LocationCode", "LocationName", "CusBankName", "CusBankNo", "CusTaxCode", "CusAddress", "CusEmails", "CusPhone",
+  "ProvinceCode", "ProvinceName", "CommuneCode", "CommuneName", "ListAttachNum", "ListAttachDate", "ProfileCode",
+  "TaxAuthorityCode", "ExchangeRate", "StoreCode", "StoreName", "PaymentMethod", "ArisingDate", "CurrencyUnit",
+  "ProdQuantity", "ProdPrice", "ProdName", "ProdUnit", "VATAmount", "VATRate", "Discount",
+  "InvoiceFees", "InvoiceFee", "EmailCC",
+  "Total", "Amount", "Extra", "Feature", "Fkey", "Ikey", "InvNo", "CusCode", "Buyer", "CusName", "Email",
+  "Note", "ComAddress", "No", "Code", "PassportNo", "Name", "FeeRate",
+].sort((a, b) => b.length - a.length);
+function resolveXmlTag(label: string) { return XML_TAG_NAMES.find((tag) => label.includes(tag)); }
 type Result = {
   status: number;
   statusText: string;
@@ -86,10 +100,13 @@ function Help({ children }: { children: string }) {
   );
 }
 
-function HighlightedXml({ text, focusedTag, productIndex }: { text: string; focusedTag?: string; productIndex?: number }) {
+function HighlightedXml({ text, selection }: { text: string; selection: XmlSelection | null }) {
   const segments = text.split(/(<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>)/g);
   let insideElementValue = false;
-  let currentProduct = -1;
+  let productCount = -1;
+  let feeCount = -1;
+  let activeProduct: number | null = null;
+  let activeFee: number | null = null;
 
   return (
     <>
@@ -108,8 +125,18 @@ function HighlightedXml({ text, focusedTag, productIndex }: { text: string; focu
         const isClosingTag = /^<\//.test(segment);
         const isSelfClosingTag = /\/>$/.test(segment);
         const tagName = segment.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
-        if (tagName === "Product" && !isClosingTag) currentProduct += 1;
-        const isFocused = tagName === focusedTag && (productIndex === undefined || currentProduct === productIndex);
+        if (tagName === "Product") {
+          if (isClosingTag) activeProduct = null;
+          else { productCount += 1; activeProduct = productCount; }
+        }
+        if (tagName === "InvoiceFee") {
+          if (isClosingTag) activeFee = null;
+          else { feeCount += 1; activeFee = feeCount; }
+        }
+        const matchesScope = selection?.scope === "product" ? activeProduct === selection.index
+          : selection?.scope === "fee" ? activeFee === selection.index
+          : activeProduct === null && activeFee === null;
+        const isFocused = tagName === selection?.tag && matchesScope;
         if (isClosingTag) insideElementValue = false;
         else if (!isSelfClosingTag) insideElementValue = true;
 
@@ -123,13 +150,16 @@ function HighlightedXml({ text, focusedTag, productIndex }: { text: string; focu
   );
 }
 
-function findRawXmlHighlightRanges(requestText: string, xmlText: string, selection: { tag: string; productIndex?: number } | null) {
+function findRawXmlHighlightRanges(requestText: string, xmlText: string, selection: XmlSelection | null) {
   const bodyStart = requestText.indexOf("\n\n") + 2;
   const serializedXml = JSON.stringify(xmlText);
   const xmlValueStart = requestText.indexOf(serializedXml, bodyStart);
   if (bodyStart < 2 || xmlValueStart < 0) return [];
   const matches: Array<{ start: number; end: number; className: string }> = [];
-  let currentProduct = -1;
+  let productCount = -1;
+  let feeCount = -1;
+  let activeProduct: number | null = null;
+  let activeFee: number | null = null;
   const segments = xmlText.split(/(<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>)/g);
   let xmlOffset = 0;
   let insideElementValue = false;
@@ -140,9 +170,18 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
       const closing = /^<\//.test(segment);
       const selfClosing = /\/>$/.test(segment);
       const name = segment.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
-      if (name === "Product" && !closing) currentProduct += 1;
-      const sameProduct = !selection || selection.productIndex === undefined || selection.productIndex === currentProduct;
-      className = selection?.tag === name && sameProduct ? "json-focus" : "raw-xml-tag";
+      if (name === "Product") {
+        if (closing) activeProduct = null;
+        else { productCount += 1; activeProduct = productCount; }
+      }
+      if (name === "InvoiceFee") {
+        if (closing) activeFee = null;
+        else { feeCount += 1; activeFee = feeCount; }
+      }
+      const matchesScope = selection?.scope === "product" ? activeProduct === selection.index
+        : selection?.scope === "fee" ? activeFee === selection.index
+        : activeProduct === null && activeFee === null;
+      className = selection?.tag === name && matchesScope ? "json-focus" : "raw-xml-tag";
       if (closing) insideElementValue = false;
       else if (!selfClosing) insideElementValue = true;
     } else if (insideElementValue && /\S/.test(segment)) className = "raw-xml-value";
@@ -200,7 +239,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [showConfig, setShowConfig] = useState(false);
   const [prettyPreview, setPrettyPreview] = useState(false);
   const [invoiceMode, setInvoiceMode] = useState<"single" | "multi">("multi");
-  const [focusedXml, setFocusedXml] = useState<{ tag: string; productIndex?: number } | null>(null);
+  const [focusedXml, setFocusedXml] = useState<XmlSelection | null>(null);
 
   const xmlBody = useMemo(
     () => buildInvoice(invoice),
@@ -570,8 +609,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
     const field = target instanceof Element ? target.closest<HTMLElement>("[data-xml-tag]") : null;
     const tag = field?.dataset.xmlTag;
     if (!tag) { if (clearWhenUnmapped) setFocusedXml(null); return; }
-    const productIndex = field.dataset.productIndex;
-    setFocusedXml({ tag, productIndex: productIndex !== undefined ? Number(productIndex) : -1 });
+    const scope = (field.dataset.xmlScope ?? "invoice") as XmlScope;
+    const rawIndex = field.dataset.xmlIndex;
+    setFocusedXml({ tag, scope, ...(rawIndex !== undefined ? { index: Number(rawIndex) } : {}) });
   }
 
   return (
@@ -897,7 +937,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     <h3 className="form-section-label">Dải hóa đơn & khóa tích hợp</h3>
                     {template === "adjust-invoice" && (
                       <>
-                        <Field label="Ikey hóa đơn gốc" required>
+                        <Field label="Ikey hóa đơn gốc" xmlTag={null} required>
                           <input
                             value={adjustment.originalIkey}
                             onChange={(event) =>
@@ -1012,7 +1052,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       <input list="payment-methods" maxLength={50} value={invoice.payment} onChange={(e) => setInvoice({ ...invoice, payment: e.target.value })} />
                       <datalist id="payment-methods"><option value="TM" /><option value="CK" /><option value="TM/CK" /></datalist>
                     </Field>
-                    <Field label="Số điện thoại · CusPhone" required={invoice.specialInvoice === "1"}>
+                    <Field label="Số điện thoại · CusPhone" xmlTag="CusPhone" required={invoice.specialInvoice === "1"}>
                       <input
                         value={invoice.phone}
                         onChange={(e) =>
@@ -1141,7 +1181,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </div>
                     {invoice.products.map((product, index) => (
                       <div className="product-row" key={index}>
-                        <Field validationField={`products[${index}].code`} label="Mã sản phẩm" help="Tùy chọn; nếu API có AutoMapProduct thì cần đúng mã danh mục.">
+                        <Field validationField={`products[${index}].code`} xmlTag="Code" label="Mã sản phẩm" help="Tùy chọn; nếu API có AutoMapProduct thì cần đúng mã danh mục.">
                           <input
                             value={product.code}
                             onChange={(e) =>
@@ -1196,7 +1236,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                               options={VAT_RATES.map(([rate, label]) => ({ value: rate, label: `${rate} · ${label}` }))} />
                           </Field>
                         )}
-                        <Field label="Giảm giá · DiscountAmount">
+                        <Field validationField={`products[${index}].discountAmount`} label="Giảm giá · DiscountAmount">
                           <input
                             type="number"
                             step="any"
@@ -1220,7 +1260,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
 ))}
   </div>
 </details>
-{product.feature === "5" && invoice.specialInvoice !== "0" && <div className="product-special-extra" data-xml-tag="Extra" data-product-index={index}><strong>Thông tin hàng hóa đặc trưng</strong><SpecialExtraFields type={invoice.specialInvoice} value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} /></div>}
+{product.feature === "5" && invoice.specialInvoice !== "0" && <div className="product-special-extra" data-xml-tag="Extra" data-xml-scope="product" data-xml-index={index}><strong>Thông tin hàng hóa đặc trưng</strong><SpecialExtraFields type={invoice.specialInvoice} value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} /></div>}
                         {invoice.products.length > 1 && (
                           <button
                             className="remove-product"
@@ -1352,6 +1392,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                 <div style={{ marginTop: 16 }}>
                   <Field
                     label="Danh sách Ikey"
+                    xmlTag={null}
                     required
                     help="Mỗi dòng hoặc dấu phẩy sẽ tạo một phần tử trong mảng Ikeys."
                   >
@@ -1601,12 +1642,12 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       <HighlightedJson text={JSON.stringify({ ...JSON.parse(body), XmlData: "(XML hiển thị bên dưới)" }, null, 2)} />
                     </pre>
                     <div className="response-body-heading">XmlData · XML đã giải mã để đọc (khi gửi vẫn là chuỗi JSON)</div>
-                    <pre className="request-preview"><HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} /></pre>
+                    <pre className="request-preview"><HighlightedXml text={xmlBody} selection={focusedXml} /></pre>
                   </div>
                 ) : (
                   <pre className="request-preview">
                     {activeTab === "xml"
-                      ? <HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} />
+                      ? <HighlightedXml text={xmlBody} selection={focusedXml} />
                       : <HighlightedJson text={requestPreview} highlightRanges={isInvoice && !prettyPreview ? findRawXmlHighlightRanges(requestPreview, xmlBody, focusedXml) : []} displayNewlinesRange={isInvoice && !prettyPreview ? findRawXmlValueRange(requestPreview, xmlBody) : undefined} />}
                   </pre>
                 )}
@@ -1714,6 +1755,8 @@ function Field({
   required = false,
   validationField,
   xmlTag,
+  xmlScope,
+  xmlIndex,
   labelBreakAt,
   children,
 }: {
@@ -1721,17 +1764,21 @@ function Field({
   help?: string;
   required?: boolean;
   validationField?: string;
-  xmlTag?: string;
+  xmlTag?: string | null;
+  xmlScope?: XmlScope;
+  xmlIndex?: number;
   labelBreakAt?: string;
   children: React.ReactNode;
 }) {
   const validationIssues = useContext(InvoiceValidationContext);
   const issueField = validationField ?? FIELD_ISSUE_LABELS.find(([prefix]) => label.startsWith(prefix))?.[1];
   const messages = issueField ? validationIssues.get(issueField) ?? [] : [];
-  const derivedTag = xmlTag ?? label.match(/·\s*([A-Za-z][A-Za-z0-9]*)/)?.[1];
+  const derivedTag = xmlTag === null ? undefined : xmlTag ?? resolveXmlTag(label);
   const productIndex = validationField?.match(/^products\[(\d+)\]/)?.[1];
+  const scope = xmlScope ?? (productIndex !== undefined ? "product" : "invoice");
+  const index = xmlIndex ?? (productIndex !== undefined ? Number(productIndex) : undefined);
   return (
-    <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={derivedTag} data-product-index={productIndex}>
+    <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={derivedTag} data-xml-scope={derivedTag ? scope : undefined} data-xml-index={derivedTag ? index : undefined}>
       <span title={label}>
         <span className="field-label-text">{labelBreakAt ? <>{labelBreakAt}<br />{label.slice(labelBreakAt.length).trim()}</> : label}</span>
         {required && (
