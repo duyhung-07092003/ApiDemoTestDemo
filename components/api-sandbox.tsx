@@ -1021,7 +1021,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="0901234567"
                       />
                     </Field>
-                    <Field label="Email nhận thông báo">
+                    <Field label="Email nhận thông báo" xmlTag="Email">
                       <input
                         type="text"
                         value={invoice.email}
@@ -1030,7 +1030,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="CCCD · CusIdentification">
+                    <Field label="CCCD · CusIdentification" xmlTag="CusIdentification">
                       <input
                         value={invoice.identification}
                         onChange={(e) =>
