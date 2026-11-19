@@ -28,7 +28,7 @@ import { XmlValidator } from "./xml-validator";
 import { InvoiceOptions, InvoiceAdvanced } from "./invoice-options";
 import { SpecialExtraFields } from "./special-extra-fields";
 import { StyledSelect } from "./styled-select";
-import { initialInvoice, buildInvoice, calculateInvoice, createEmptyInvoice, VAT_RATES, FEATURES } from "@/lib/softdreams/invoice";
+import { initialInvoice, buildInvoice, calculateInvoice, calculateProduct, createEmptyInvoice, VAT_RATES, FEATURES } from "@/lib/softdreams/invoice";
 import { validateInvoice, invoiceIssues, INVOICE_LIMITS } from "@/lib/softdreams/validate";
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
 
@@ -386,20 +386,75 @@ export function ApiSandbox({ domain }: { domain: string }) {
   }
 
   function simulateResponse() {
-    const responseBody = JSON.stringify(
-      {
-        success: true,
-        simulated: true,
-        message: "Response mẫu — request chưa được gửi tới API.",
-        data: {
-          method,
-          endpoint: `${domain.replace(/\/+$/, "")}${apiPath}`,
-          accepted: true,
-        },
-      },
-      null,
-      2,
-    );
+    const isInvoiceResponse = template === "invoice";
+    const responseData = isInvoiceResponse
+      ? {
+          Status: 2,
+          Message: "Ok (mô phỏng)",
+          Data: {
+            Pattern: invoice.pattern.trim().toUpperCase(),
+            Serial: invoice.serial,
+            Ikeys: [invoice.ikey],
+            Invoices: [{
+              InvoiceStatus: 0,
+              Buyer: invoice.buyer,
+              TaxAmount: invoiceTotals.vat,
+              PublishedBy: null,
+              Type: 0,
+              Products: invoice.products.map((product, index) => {
+                const values = calculateProduct(product);
+                return {
+                  id: null,
+                  InvID: null,
+                  ProdID: null,
+                  No: index + 1,
+                  ProdName: product.name,
+                  ProdPrice: product.price,
+                  Feature: product.feature === "" ? null : Number(product.feature),
+                  ProdQuantity: product.quantity,
+                  ProdUnit: product.unit,
+                  VATRate: product.vat,
+                  VATRateOther: product.vat === -3 ? product.vatRateOther : null,
+                  Discount: product.discount,
+                  VATAmount: values.vatAmount,
+                  DiscountAmount: product.discountAmount,
+                  Amount: values.amount,
+                  Code: product.code,
+                  Total: values.total,
+                  Extra: product.extra || null,
+                };
+              }),
+              Pattern: invoice.pattern.trim().toUpperCase(),
+              Serial: invoice.serial,
+              No: "0",
+              Ikey: invoice.ikey,
+              ArisingDate: invoice.date ? invoice.date.split("-").reverse().join("/") : "",
+              IssueDate: null,
+              CustomerName: invoice.customer,
+              CustomerAddress: invoice.address,
+              CustomerCode: invoice.customerCode,
+              CustomerTaxCode: invoice.tax,
+              Total: invoiceTotals.total,
+              Amount: invoiceTotals.amount,
+              LookupCode: "SAMPLE_LOOKUP_CODE",
+              LinkView: null,
+              ModifiedDate: null,
+              CusIdentification: invoice.identification,
+              PassportNo: invoice.passportNo,
+            }],
+          },
+          ErrorCode: 0,
+        }
+      : {
+          success: true,
+          message: "Response mẫu — request chưa được gửi tới API.",
+          data: {
+            method,
+            endpoint: `${domain.replace(/\/+$/, "")}${apiPath}`,
+            accepted: true,
+          },
+        };
+    const responseBody = JSON.stringify(responseData, null, 2);
     setError("");
     setResult({
       status: 200,
@@ -1509,7 +1564,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       className="subtle-button simulate-button"
                       type="button"
                       onClick={simulateResponse}
-                      disabled={loading || template === "invoice"}
+                      disabled={loading}
                     >
                       <Sparkles size={13} />
                       Tạo response mẫu
