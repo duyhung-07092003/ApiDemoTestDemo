@@ -3,7 +3,7 @@
 export function SpecialExtraFields({ type, value, onChange }: { type: string; value: string; onChange: (value: string) => void }) {
   let obj: Record<string, unknown> = {};
   try { const parsed = JSON.parse(value || "{}"); if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(); obj = parsed; }
-  catch { return <p className="invoice-rule-note">Extra cần là JSON object hợp lệ để dùng các ô nhập đặc trưng bên dưới.</p>; }
+  catch { obj = {}; }
   let keys: readonly (readonly [string, string])[] = [];
   if (type === "1") keys = [
     ["SKhung", "Số khung *"], ["SMay", "Số máy *"], ["LTSan", "Loại tài sản (1/2; để trống nếu bản cũ)"],

@@ -87,9 +87,10 @@ function Help({ children }: { children: string }) {
   );
 }
 
-function HighlightedXml({ text }: { text: string }) {
+function HighlightedXml({ text, focusedTag, productIndex }: { text: string; focusedTag?: string; productIndex?: number }) {
   const segments = text.split(/(<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>)/g);
   let insideElementValue = false;
+  let currentProduct = -1;
 
   return (
     <>
@@ -107,11 +108,14 @@ function HighlightedXml({ text }: { text: string }) {
 
         const isClosingTag = /^<\//.test(segment);
         const isSelfClosingTag = /\/>$/.test(segment);
+        const tagName = segment.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
+        if (tagName === "Product" && !isClosingTag) currentProduct += 1;
+        const isFocused = tagName === focusedTag && (productIndex === undefined || currentProduct === productIndex);
         if (isClosingTag) insideElementValue = false;
         else if (!isSelfClosingTag) insideElementValue = true;
 
         return (
-          <span className="xml-tag" key={index}>
+          <span className={`xml-tag${isFocused ? " xml-tag-focused" : ""}`} key={index}>
             {segment}
           </span>
         );
@@ -157,6 +161,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [showConfig, setShowConfig] = useState(false);
   const [prettyPreview, setPrettyPreview] = useState(false);
   const [invoiceMode, setInvoiceMode] = useState<"single" | "multi">("multi");
+  const [focusedXml, setFocusedXml] = useState<{ tag: string; productIndex?: number } | null>(null);
 
   const xmlBody = useMemo(
     () => buildInvoice(invoice),
@@ -164,7 +169,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   );
   const body = useMemo(() => {
     if (template === "invoice")
-      return JSON.stringify({ XmlData: xmlBody, Pattern: invoice.pattern.trim().toUpperCase(), Serial: invoice.serial, Convert: invoice.convert, updateCus: invoice.updateCus }, null, 2);
+      return JSON.stringify({ XmlData: xmlBody, Pattern: invoice.pattern.trim().toUpperCase(), Serial: invoice.serial, Convert: invoice.convert }, null, 2);
     if (template === "adjust-invoice")
       return JSON.stringify(
         {
@@ -197,7 +202,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
       null,
       2,
     );
-  }, [template, xmlBody, adjustment, digest, invoiceKeys, invoice.pattern, invoice.serial, invoice.convert, invoice.updateCus]);
+  }, [template, xmlBody, adjustment, digest, invoiceKeys, invoice.pattern, invoice.serial, invoice.convert]);
   const requestPreview = useMemo(() => {
     const headers = method === "GET" ? [] : ["Content-Type: application/json"];
     if (template === "invoice") headers.push("Authentication: •••••••• (tự sinh trên server)");
@@ -521,6 +526,15 @@ export function ApiSandbox({ domain }: { domain: string }) {
     }));
   }
 
+  function highlightFormField(target: EventTarget | null) {
+    const field = target instanceof HTMLElement ? target.closest<HTMLElement>("[data-xml-tag]") : null;
+    const tag = field?.dataset.xmlTag;
+    if (!tag) { setFocusedXml(null); return; }
+    const productIndex = field.dataset.productIndex;
+    setFocusedXml({ tag, ...(productIndex !== undefined ? { productIndex: Number(productIndex) } : {}) });
+    setPrettyPreview(true);
+  }
+
   return (
     <main className="sandbox-shell" data-theme={theme}>
       <aside className="sidebar">
@@ -733,7 +747,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
           <div className="builder-layout-v2">
 
             {/* LEFT — Invoice / form data */}
-            <section className="form-panel">
+            <section className="form-panel" onFocusCapture={(event) => highlightFormField(event.target)} onMouseOverCapture={(event) => highlightFormField(event.target)}>
               <div className="card-heading">
                 <div className="card-title">
                   <span className="step-number">01</span>
@@ -909,7 +923,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   <datalist id="payment-methods"><option value="TM" /><option value="CK" /><option value="TM/CK" /></datalist>
 </Field>
                     <h3 className="form-section-label">Thông tin người mua</h3>
-                    <Field label="Mã khách hàng · CusCode">
+                        <Field label="Mã khách hàng · CusCode" xmlTag="CusCode">
                       <input
                         value={invoice.customerCode}
                         onChange={(e) =>
@@ -920,7 +934,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Người mua · Buyer" required={!invoice.customer.trim()} help="Ít nhất một trong Buyer/CusName phải có giá trị. Buyer tối đa 100 ký tự.">
+                    <Field label="Người mua · Buyer" xmlTag="Buyer" required={!invoice.customer.trim()} help="Ít nhất một trong Buyer/CusName phải có giá trị. Buyer tối đa 100 ký tự.">
                       <input
                         value={invoice.buyer}
                         onChange={(e) =>
@@ -928,7 +942,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Tên khách hàng · CusName" required={!!invoice.tax.trim() || !invoice.buyer.trim() || invoice.specialInvoice === "1"}>
+                    <Field label="Tên khách hàng · CusName" xmlTag="CusName" required={!!invoice.tax.trim() || !invoice.buyer.trim() || invoice.specialInvoice === "1"}>
                       <input
                         value={invoice.customer}
                         onChange={(e) =>
@@ -936,7 +950,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Mã số thuế · CusTaxCode" required={invoice.specialInvoice === "1"} help="10 số, 10 số-3 số hoặc 12 số; khoảng trắng được bỏ khi gửi.">
+                    <Field label="Mã số thuế · CusTaxCode" xmlTag="CusTaxCode" required={invoice.specialInvoice === "1"} help="10 số, 10 số-3 số hoặc 12 số; khoảng trắng được bỏ khi gửi.">
                       <input
                         value={invoice.tax}
                         onChange={(e) =>
@@ -944,7 +958,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Địa chỉ · CusAddress" required={!!invoice.tax.trim() || invoice.specialInvoice === "1"}>
+                    <Field label="Địa chỉ · CusAddress" xmlTag="CusAddress" required={!!invoice.tax.trim() || invoice.specialInvoice === "1"}>
                       <input
                         value={invoice.address}
                         onChange={(e) =>
@@ -980,7 +994,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       />
                     </Field>
                     <h3 className="form-section-label">Ngày, bảng kê & địa điểm kinh doanh</h3>
-                    <Field label="Ngày phát sinh · ArisingDate" help="Để trống: API dùng ngày hiện tại. Năm phải trùng Pattern; gửi XML dd/MM/yyyy.">
+                    <Field label="Ngày phát sinh · ArisingDate" xmlTag="ArisingDate" help="Để trống: API dùng ngày hiện tại. Năm phải trùng Pattern; gửi XML dd/MM/yyyy.">
 <DateInput
                         value={invoice.date}
                         onChange={(e) =>
@@ -1029,12 +1043,6 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         onChange={(e) =>
                           setInvoice({ ...invoice, locationAddress: e.target.value })
                         }
-                      />
-                    </Field>
-                    <Field label="Ghi chú · Extra">
-                      <ExtraInput
-                        value={invoice.extra}
-                        onChange={(extra) => setInvoice({ ...invoice, extra })}
                       />
                     </Field>
                     <Field label="AmountInWords · Số tiền bằng chữ" required={invoice.profile !== "receipt"} help="Thẻ XML luôn có; form yêu cầu nhập cho TT78, trừ cấu hình cleaner của API có thể sinh tự động.">
@@ -1094,7 +1102,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                        <Field validationField={`products[${index}].name`} label="Tên sản phẩm" required>
+                        <Field validationField={`products[${index}].name`} xmlTag="ProdName" label="Tên sản phẩm" required>
                           <input
                             value={product.name}
                             onChange={(e) =>
@@ -1102,7 +1110,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                        <Field validationField={`products[${index}].unit`} label="Đơn vị tính">
+                        <Field validationField={`products[${index}].unit`} xmlTag="ProdUnit" label="Đơn vị tính">
                           <input
                             value={product.unit}
                             onChange={(e) =>
@@ -1114,7 +1122,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   <StyledSelect value={product.feature} onChange={(next) => updateProduct(index, "feature", next)}
     options={[{ value: "", label: "Tự suy theo Amount (kiểu cũ)" }, ...FEATURES.map(([value, label]) => ({ value, label: `${value} · ${label}` }))]} />
 </Field>
-                    <Field label="Số lượng">
+                    <Field xmlTag="ProdQuantity" validationField={`products[${index}].quantity`} label="Số lượng">
                           <input
                             type="number"
                             step="any"
@@ -1124,7 +1132,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                    <Field label="Đơn giá">
+                    <Field xmlTag="ProdPrice" validationField={`products[${index}].price`} label="Đơn giá">
                           <input
                             type="number"
                             step="any"
@@ -1135,7 +1143,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           />
                         </Field>
                         {invoiceMode === "multi" && (
-                          <Field validationField={`products[${index}].vatRate`} label="VAT" required>
+                          <Field validationField={`products[${index}].vatRate`} xmlTag="VATRate" label="VAT" required>
                             <StyledSelect value={product.vat}
                               onChange={(next) => updateProduct(index, "vat", next)}
                               options={VAT_RATES.map(([rate, label]) => ({ value: rate, label: `${rate} · ${label}` }))} />
@@ -1151,22 +1159,21 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                        {invoiceMode === "multi" && <Field label="VATRate · Thuế suất dòng" required>
-                          <span className="gross-inline-help"><span>Gross nhóm {product.vat === -3 ? "KHÁC" : VAT_RATES.find(([rate]) => rate === product.vat)?.[1].split(" · ")[0]}</span><GrossHelp rate={product.vat} /></span>
-                        </Field>}
-                        {product.vat === -3 && <Field validationField={`products[${index}].vatRateOther`} label="VATRateOther · Thuế suất khác" required>
+                        {product.vat === -3 && <Field validationField={`products[${index}].vatRateOther`} xmlTag="VATRateOther" label="VATRateOther · Thuế suất khác" required>
   <input type="number" min="0" max="99.99" step="0.01" value={product.vatRateOther} onChange={(e) => updateProduct(index, "vatRateOther", e.target.value)} />
 </Field>}
-<Field validationField={`products[${index}].discount`} label="Discount · Tỷ lệ CK (%)"><input type="number" max="100" step="any" value={product.discount} onChange={(e) => updateProduct(index, "discount", e.target.value)} /></Field>
+<details className="product-advanced">
+  <summary>Tùy chọn dòng · Chiết khấu và số tiền nhập riêng</summary>
+  <div className="form-grid">
+<Field validationField={`products[${index}].discount`} xmlTag="Discount" label="Discount · Tỷ lệ CK (%)"><input type="number" max="100" step="any" value={product.discount} onChange={(e) => updateProduct(index, "discount", e.target.value)} /></Field>
 {([["totalOverride", "Total · Trước thuế"], ["vatAmountOverride", "VATAmount · Tiền thuế"], ["amountOverride", "Amount · Sau thuế"]] as const).map(([key, label]) => (
   <Field key={key} validationField={`products[${index}].${key}`} label={label} help="Để trống: tính gợi ý từ SL × ĐG − DiscountAmount; có thể nhập riêng. API không kiểm tra khớp phép tính này.">
     <input type="number" step="any" value={product[key]} placeholder="Tự tính; có thể nhập riêng" onChange={(e) => updateProduct(index, key, e.target.value)} />
   </Field>
 ))}
-                        <Field validationField={`products[${index}].extra`} label="Extra · Thông tin bổ sung sản phẩm" help="Chuỗi hoặc JSON. Không gửi BusinessProdGroupCode thành thẻ XML; nếu cần chỉ lưu trong Extra theo quy ước riêng của đơn vị.">
-                          <ExtraInput value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} />
-                        </Field>
-{product.feature === "5" && invoice.specialInvoice !== "0" && <SpecialExtraFields type={invoice.specialInvoice} value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} />}
+  </div>
+</details>
+{product.feature === "5" && invoice.specialInvoice !== "0" && <div className="product-special-extra" data-xml-tag="Extra" data-product-index={index}><strong>Thông tin hàng hóa đặc trưng</strong><SpecialExtraFields type={invoice.specialInvoice} value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} /></div>}
                         {invoice.products.length > 1 && (
                           <button
                             className="remove-product"
@@ -1547,11 +1554,11 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       <HighlightedJson text={JSON.stringify({ ...JSON.parse(body), XmlData: "(XML hiển thị bên dưới)" }, null, 2)} />
                     </pre>
                     <div className="response-body-heading">XmlData · XML đã giải mã để đọc (khi gửi vẫn là chuỗi JSON)</div>
-                    <pre className="request-preview"><HighlightedXml text={xmlBody} /></pre>
+                    <pre className="request-preview"><HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} /></pre>
                   </div>
                 ) : (
                   <pre className="request-preview">
-                    {activeTab === "xml" ? <HighlightedXml text={xmlBody} /> : <HighlightedJson text={requestPreview} />}
+                    {activeTab === "xml" ? <HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} /> : <HighlightedJson text={requestPreview} />}
                   </pre>
                 )}
                 <div className="response-footer">
@@ -1657,19 +1664,23 @@ function Field({
   help,
   required = false,
   validationField,
+  xmlTag,
   children,
 }: {
   label: string;
   help?: string;
   required?: boolean;
   validationField?: string;
+  xmlTag?: string;
   children: React.ReactNode;
 }) {
   const validationIssues = useContext(InvoiceValidationContext);
   const issueField = validationField ?? FIELD_ISSUE_LABELS.find(([prefix]) => label.startsWith(prefix))?.[1];
   const messages = issueField ? validationIssues.get(issueField) ?? [] : [];
+  const derivedTag = xmlTag ?? label.match(/·\s*([A-Za-z][A-Za-z0-9]*)/)?.[1];
+  const productIndex = validationField?.match(/^products\[(\d+)\]/)?.[1];
   return (
-    <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined}>
+    <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={derivedTag} data-product-index={productIndex}>
       <span>
         {label}
         {required && (

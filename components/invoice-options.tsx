@@ -2,6 +2,7 @@
 
 import type { InvoiceInput } from "@/lib/softdreams/invoice";
 import { StyledSelect } from "./styled-select";
+import { ExtraInput } from "./extra-input";
 
 type InvoiceIssue = { field: string; message: string };
 const issueMessages = (issues: InvoiceIssue[], field: string) => issues.filter((issue) => issue.field === field).map((issue) => issue.message);
@@ -29,7 +30,6 @@ export function InvoiceOptions({ value, onChange, issues = [] }: { value: Invoic
       <label id={issueId("convert")} className="field" data-invalid={convertIssues.length > 0 || undefined}><span>Convert · Bảng mã dữ liệu</span><StyledSelect value={value.convert} onChange={(next) => onChange({ ...value, convert: Number(next) })} options={[
         { value: 0, label: "0 · Unicode (mặc định)" }, { value: 1, label: "1 · TCVN3 → Unicode trên API" },
       ]} /><FieldIssues messages={convertIssues} /></label>
-      <label className="invoice-option-check"><input type="checkbox" checked={value.updateCus} onChange={(e) => onChange({ ...value, updateCus: e.target.checked })} />updateCus · Tạo/cập nhật khách hàng theo CusCode</label>
     </div>
     <p>{mtt ? "Pattern MTT: form kiểm tra định dạng mã CQT; API xác nhận mã đã đăng ký cho dải và chưa dùng." : "Mẫu thường: không gửi TaxAuthorityCode."} Thuế 8%, danh mục tỉnh/xã, cấu hình miễn kiểm tra và cleaner chỉ xác minh được trên API.</p>
     <p>Form này hỗ trợ TT78 và biên lai. Mẫu cũ, chứng từ TNCN và phiếu xuất kho có cấu trúc riêng, không chọn thay bằng TT78.</p>
@@ -40,6 +40,7 @@ export function InvoiceAdvanced({ value, onChange, issues = [] }: { value: Invoi
   return <details className="invoice-options">
     <summary>Trường nâng cao & phí/lệ phí</summary>
     <div className="form-grid">
+      <label className="field"><span>Extra · Thông tin bổ sung (tùy chọn)</span><ExtraInput value={value.extra} onChange={(extra) => onChange({ ...value, extra })} /></label>
       {([
         ["budgetaryRelationshipCode", "BudgetaryRelationshipCode · Mã quan hệ ngân sách"],
         ["comAddress", "ComAddress · Địa chỉ bên bán"], ["note", "Note · Ghi chú"],

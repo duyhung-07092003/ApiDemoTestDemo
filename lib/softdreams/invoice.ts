@@ -2,7 +2,6 @@ export const initialInvoice = {
   profile: "tt78",
   specialInvoice: "0",
   convert: 0,
-  updateCus: true,
   pattern: "1C26TTR",
   serial: "",
   ikey: "acb3a1c2-6573-4b1b-86e7-3a0827fe3205",

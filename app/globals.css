@@ -623,6 +623,13 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .sandbox-shell[data-theme="dark"] .styled-select-item[data-highlighted] { color: #bfdbfe; background: #1b3455; }
 .sandbox-shell[data-theme="dark"] .styled-select-check { color: #60a5fa; }
 .form-panel { container-type: inline-size; }
+.xml-tag-focused { color: #111827; background: #facc15; border-radius: 3px; outline: 2px solid #facc15; box-shadow: 0 0 0 4px rgb(250 204 21 / 22%); }
+.invoice-field-advanced, .product-advanced { grid-column: 1 / -1; border: 1px solid #dce4f1; border-radius: 12px; padding: 12px 14px; background: #f8faff; }
+.invoice-field-advanced > summary, .product-advanced > summary { cursor: pointer; color: #3157a4; font-weight: 650; }
+.invoice-field-advanced[open] > summary, .product-advanced[open] > summary { margin-bottom: 14px; }
+.invoice-field-advanced > .field { margin-top: 12px; }
+.product-special-extra { grid-column: 1 / -1; border: 1px solid #dce4f1; border-radius: 12px; padding: 14px; background: #fbfcff; }
+.product-special-extra > strong { display: block; margin-bottom: 12px; }
 .invoice-summary > .invoice-rule-note { grid-column: 1 / -1; margin: 0; }
 .invoice-field-error-anchor { scroll-margin-block: 140px; }
 .field[data-invalid="true"] { scroll-margin-block: 140px; }

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const invoice = validateInvoice(payload.invoice);
     headers = new Headers({ "Content-Type": "application/json", Accept: "application/json" });
     headers.set("Authentication", createAuthen(SOFTDREAMS_APIS.invoice.method));
-    payload = { XmlData: buildInvoice(invoice), Pattern: invoice.pattern, Serial: invoice.serial, Convert: invoice.convert, updateCus: invoice.updateCus };
+    payload = { XmlData: buildInvoice(invoice), Pattern: invoice.pattern, Serial: invoice.serial, Convert: invoice.convert };
   } catch (error) {
     return Response.json({ message: error instanceof Error ? error.message : "Request không hợp lệ." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
