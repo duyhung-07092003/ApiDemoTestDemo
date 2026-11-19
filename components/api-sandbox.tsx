@@ -1039,7 +1039,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="091307006293"
                       />
                     </Field>
-                    <h3 className="form-section-label">Ngày hóa đơn</h3>
+                    <h3 className="form-section-label">Ngày hóa đơn & bảng kê</h3>
                     <Field label="Ngày phát sinh · ArisingDate" xmlTag="ArisingDate" help="Để trống: API dùng ngày hiện tại. Năm phải trùng Pattern; gửi XML dd/MM/yyyy.">
 <DateInput
                         value={invoice.date}
@@ -1048,7 +1048,6 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <h3 className="form-section-label">Bảng kê</h3>
                     <Field label="Số phụ lục · ListAttachNum">
                       <input
                         value={invoice.listAttachNum}
@@ -1093,7 +1092,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="AmountInWords · Số tiền bằng chữ" required={invoice.profile !== "receipt"} help="Thẻ XML luôn có; form yêu cầu nhập cho TT78, trừ cấu hình cleaner của API có thể sinh tự động.">
+                    <Field label="AmountInWords · Số tiền bằng chữ" labelBreakAt="AmountInWords ·" required={invoice.profile !== "receipt"} help="Thẻ XML luôn có; form yêu cầu nhập cho TT78, trừ cấu hình cleaner của API có thể sinh tự động.">
                       <input
                         value={invoice.amountInWords}
                         onChange={(e) =>
@@ -1715,6 +1714,7 @@ function Field({
   required = false,
   validationField,
   xmlTag,
+  labelBreakAt,
   children,
 }: {
   label: string;
@@ -1722,6 +1722,7 @@ function Field({
   required?: boolean;
   validationField?: string;
   xmlTag?: string;
+  labelBreakAt?: string;
   children: React.ReactNode;
 }) {
   const validationIssues = useContext(InvoiceValidationContext);
@@ -1732,7 +1733,7 @@ function Field({
   return (
     <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={derivedTag} data-product-index={productIndex}>
       <span title={label}>
-        <span className="field-label-text">{label}</span>
+        <span className="field-label-text">{labelBreakAt ? <>{labelBreakAt}<br />{label.slice(labelBreakAt.length).trim()}</> : label}</span>
         {required && (
           <b className="required-star" aria-label="bắt buộc">
             *
