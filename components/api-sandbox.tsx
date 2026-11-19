@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { ResponsePanel, HighlightedJson } from "./response-panel";
 import { DateInput } from "./date-input";
-import { ExtraInput } from "./extra-input";
 import { XmlValidator } from "./xml-validator";
 import { InvoiceOptions, InvoiceAdvanced } from "./invoice-options";
 import { SpecialExtraFields } from "./special-extra-fields";
@@ -497,6 +496,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
         i === index
           ? {
               ...product,
+              ...(field === "feature" && value !== "5" ? { extra: "" } : {}),
               [field]: ["quantity", "price", "vat", "discountAmount", "discount"].includes(field)
                 ? Number(value)
                 : value,
@@ -532,7 +532,6 @@ export function ApiSandbox({ domain }: { domain: string }) {
     if (!tag) { setFocusedXml(null); return; }
     const productIndex = field.dataset.productIndex;
     setFocusedXml({ tag, ...(productIndex !== undefined ? { productIndex: Number(productIndex) } : {}) });
-    setPrettyPreview(true);
   }
 
   return (
@@ -889,7 +888,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       <input
                         value={invoice.pattern}
                         onChange={(e) =>
-                          setInvoice({ ...invoice, pattern: e.target.value })
+                          setInvoice({
+                            ...invoice,
+                            pattern: e.target.value,
+                            ...(e.target.value.trim().startsWith("2") || !invoice.extra ? {} : { extra: (() => {
+                              try { const extra = JSON.parse(invoice.extra); delete extra.CheckDiscount; return Object.keys(extra).length ? JSON.stringify(extra, null, 2) : ""; }
+                              catch { return ""; }
+                            })() }),
+                          })
                         }
                         placeholder="1C26TAA"
                       />
@@ -918,10 +924,6 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Hình thức thanh toán" required help="Chuỗi tự do, tối đa 50 ký tự.">
-  <input list="payment-methods" maxLength={50} value={invoice.payment} onChange={(e) => setInvoice({ ...invoice, payment: e.target.value })} />
-  <datalist id="payment-methods"><option value="TM" /><option value="CK" /><option value="TM/CK" /></datalist>
-</Field>
                     <h3 className="form-section-label">Thông tin người mua</h3>
                         <Field label="Mã khách hàng · CusCode" xmlTag="CusCode">
                       <input
@@ -965,6 +967,10 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           setInvoice({ ...invoice, address: e.target.value })
                         }
                       />
+                    </Field>
+                    <Field label="Hình thức thanh toán · PaymentMethod" xmlTag="PaymentMethod" required help="Chuỗi tự do tối đa 50 ký tự, ví dụ TM, CK hoặc TM/CK.">
+                      <input list="payment-methods" maxLength={50} value={invoice.payment} onChange={(e) => setInvoice({ ...invoice, payment: e.target.value })} />
+                      <datalist id="payment-methods"><option value="TM" /><option value="CK" /><option value="TM/CK" /></datalist>
                     </Field>
                     <Field label="Số điện thoại · CusPhone" required={invoice.specialInvoice === "1"}>
                       <input

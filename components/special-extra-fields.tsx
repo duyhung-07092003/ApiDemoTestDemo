@@ -18,6 +18,13 @@ export function SpecialExtraFields({ type, value, onChange }: { type: string; va
     <input value={String(obj[key] ?? "")} onChange={(e) => {
       const next = { ...obj };
       if (e.target.value === "") delete next[key]; else next[key] = e.target.value;
+      if (key === "XXu") {
+        delete next.SSPKTCLXXuong;
+        delete next.SGCNATKThuat;
+      }
+      if (key === "TTTSan" && e.target.value !== "1") {
+        for (const vehicleKey of ["MNSXuat", "TLTSDKy", "NSXuat", "TTMai", "TNHieu", "KLXe", "TTLVHCSuat", "TTai", "SCNgoi", "SBKSoat"]) delete next[vehicleKey];
+      }
       onChange(JSON.stringify(next, null, 2));
     }} /></label>)}</div>;
 }

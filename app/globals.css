@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -693,7 +694,7 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 :root:has(.sandbox-shell[data-theme="dark"]) *::-webkit-scrollbar-thumb:hover { background: #7b93b1; }
 
 /* Clearer typography and a wider working canvas */
-body { font-family: Inter, "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; font-size: 14px; }
+body { font-family: "Be Vietnam Pro", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; font-size: 14px; }
 button, input, select, textarea { font-family: inherit; }
 .content { width: 100%; max-width: none; margin-inline: 0; padding: 28px 24px 24px; }
 .topbar { padding-inline: 26px; }
@@ -703,7 +704,7 @@ button, input, select, textarea { font-family: inherit; }
 .eyebrow, .heading-badge, .breadcrumbs, .environment { font-size: 12px; }
 .template-meta strong, .api-picker-label, .api-option-meta strong { font-size: 13px; font-weight: 650; }
 .template-meta small, .api-option-meta small, .template-count { font-size: 11px; }
-.field > span, .field-label, .url-field > label, .config-field > label { color: #334155; font-size: 14px; font-weight: 650; line-height: 1.45; }
+.field > span, .field-label, .url-field > label, .config-field > label { color: #2454a6; font-size: 14px; font-weight: 650; line-height: 1.45; }
 .field input, .field select, .config-field input, .config-field select, .url-field input { min-height: 44px; font-size: 15px; font-weight: 500; }
 .field input::placeholder, .url-field input::placeholder { color: #7b8799; }
 .form-section-label { font-size: 16px; font-weight: 750; }
@@ -724,7 +725,7 @@ button, input, select, textarea { font-family: inherit; }
 .sandbox-shell[data-theme="dark"] .field > span,
 .sandbox-shell[data-theme="dark"] .field-label,
 .sandbox-shell[data-theme="dark"] .url-field > label,
-.sandbox-shell[data-theme="dark"] .config-field > label { color: #d5deeb; }
+.sandbox-shell[data-theme="dark"] .config-field > label { color: #a9c7fa; }
 .sandbox-shell[data-theme="dark"] .field input::placeholder,
 .sandbox-shell[data-theme="dark"] .url-field input::placeholder { color: #94a3b8; }
 @media (max-width: 900px) {
@@ -737,3 +738,18 @@ button, input, select, textarea { font-family: inherit; }
   .page-heading h1 { font-size: 26px; }
   .field > span, .field-label, .url-field > label, .config-field > label { font-size: 13px; }
 }
+.sidebar, .sidebar button, .sidebar a, .sidebar small, .brand { font-family: "Be Vietnam Pro", "Segoe UI Variable", "Segoe UI", sans-serif; }
+.side-link { min-height: 39px; font-weight: 550; }
+.side-link.selected { font-weight: 700; }
+.workspace-label, .side-heading { font-size: 11px; letter-spacing: .9px; }
+.request-preview .xml-tag { color: #1d4ed8; font-weight: 750; }
+.request-preview .xml-value { color: #047857; font-weight: 550; }
+.sandbox-shell[data-theme="dark"] .request-preview .xml-tag { color: #7db4ff; font-weight: 750; }
+.sandbox-shell[data-theme="dark"] .request-preview .xml-value { color: #5eead4; font-weight: 550; }
+.extra-key-fields > p { grid-column: 1 / -1; margin: 0 0 10px; color: #64748b; font-size: 13px; line-height: 1.5; }
+.invoice-extra-field { grid-column: 1 / -1; padding: 14px; border: 1px solid #dce4f1; border-radius: 12px; background: #f8faff; }
+.invoice-extra-field > strong { display: block; margin-bottom: 9px; color: #334155; font-size: 14px; }
+.invoice-extra-field .form-grid { gap: 12px; }
+.sandbox-shell[data-theme="dark"] .invoice-extra-field { background: #0e1929; border-color: #334762; }
+.sandbox-shell[data-theme="dark"] .invoice-extra-field > strong,
+.sandbox-shell[data-theme="dark"] .extra-key-fields > p { color: #cbd5e1; }

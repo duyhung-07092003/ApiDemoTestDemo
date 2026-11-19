@@ -2,7 +2,7 @@
 
 import type { InvoiceInput } from "@/lib/softdreams/invoice";
 import { StyledSelect } from "./styled-select";
-import { ExtraInput } from "./extra-input";
+import { InvoiceExtraFields } from "./invoice-extra-fields";
 
 type InvoiceIssue = { field: string; message: string };
 const issueMessages = (issues: InvoiceIssue[], field: string) => issues.filter((issue) => issue.field === field).map((issue) => issue.message);
@@ -23,7 +23,7 @@ export function InvoiceOptions({ value, onChange, issues = [] }: { value: Invoic
         onChange({ ...value, profile, ...(receipt ? { specialInvoice: "0", vatRate: -1, vatRateOther: "", currency: "VND", vatAmountOverride: "",
           products: value.products.map((p) => ({ ...p, vat: -1, vatRateOther: "", vatAmountOverride: "", feature: p.feature === "4" ? "4" : "1" })) } : {}) });
       }} /><FieldIssues messages={profileIssues} /></label>
-      <label id={issueId("specialInvoice")} className="field" data-invalid={specialIssues.length > 0 || undefined}><span>Hàng hóa đặc trưng của dải</span><StyledSelect value={value.specialInvoice} disabled={value.profile === "receipt"} onChange={(specialInvoice) => onChange({ ...value, specialInvoice })} options={[
+      <label id={issueId("specialInvoice")} className="field" data-invalid={specialIssues.length > 0 || undefined}><span>Hàng hóa đặc trưng của dải</span><StyledSelect value={value.specialInvoice} disabled={value.profile === "receipt"} onChange={(specialInvoice) => onChange({ ...value, specialInvoice, ...(specialInvoice !== value.specialInvoice ? { products: value.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) } : {}) })} options={[
         { value: "0", label: "Thông thường" }, { value: "1", label: "1 · Mua bán xe" },
         { value: "2", label: "2 · Dịch vụ vận chuyển" }, { value: "3", label: "3 · Vận chuyển trên TMĐT" },
       ]} /><FieldIssues messages={specialIssues} /></label>
@@ -40,7 +40,7 @@ export function InvoiceAdvanced({ value, onChange, issues = [] }: { value: Invoi
   return <details className="invoice-options">
     <summary>Trường nâng cao & phí/lệ phí</summary>
     <div className="form-grid">
-      <label className="field"><span>Extra · Thông tin bổ sung (tùy chọn)</span><ExtraInput value={value.extra} onChange={(extra) => onChange({ ...value, extra })} /></label>
+      <div className="invoice-extra-field"><strong>Extra hóa đơn · các key cố định</strong><InvoiceExtraFields value={value.extra} pattern={value.pattern} onChange={(extra) => onChange({ ...value, extra })} /></div>
       {([
         ["budgetaryRelationshipCode", "BudgetaryRelationshipCode · Mã quan hệ ngân sách"],
         ["comAddress", "ComAddress · Địa chỉ bên bán"], ["note", "Note · Ghi chú"],
