@@ -624,7 +624,7 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .sandbox-shell[data-theme="dark"] .styled-select-item[data-highlighted] { color: #bfdbfe; background: #1b3455; }
 .sandbox-shell[data-theme="dark"] .styled-select-check { color: #60a5fa; }
 .form-panel { container-type: inline-size; }
-.xml-tag-focused { color: #111827; background: #facc15; border-radius: 3px; outline: 2px solid #facc15; box-shadow: 0 0 0 4px rgb(250 204 21 / 22%); }
+.xml-tag-focused { color: #7c2d12; background: #ffedd5; border-radius: 4px; outline: 2px solid #f97316; box-shadow: 0 0 0 4px rgb(249 115 22 / 22%); }
 .invoice-field-advanced, .product-advanced { grid-column: 1 / -1; border: 1px solid #dce4f1; border-radius: 12px; padding: 12px 14px; background: #f8faff; }
 .invoice-field-advanced > summary, .product-advanced > summary { cursor: pointer; color: #3157a4; font-weight: 650; }
 .invoice-field-advanced[open] > summary, .product-advanced[open] > summary { margin-bottom: 14px; }
@@ -742,10 +742,12 @@ button, input, select, textarea { font-family: inherit; }
 .side-link { min-height: 39px; font-weight: 550; }
 .side-link.selected { font-weight: 700; }
 .workspace-label, .side-heading { font-size: 11px; letter-spacing: .9px; }
-.request-preview .xml-tag { color: #1d4ed8; font-weight: 750; }
-.request-preview .xml-value { color: #047857; font-weight: 550; }
-.sandbox-shell[data-theme="dark"] .request-preview .xml-tag { color: #7db4ff; font-weight: 750; }
-.sandbox-shell[data-theme="dark"] .request-preview .xml-value { color: #5eead4; font-weight: 550; }
+.request-preview .xml-tag { color: #7c3aed; font-weight: 750; }
+.request-preview .xml-value { color: #0f766e; font-weight: 550; }
+.request-preview .xml-tag.xml-tag-focused { color: #7c2d12; background: #ffedd5; }
+.sandbox-shell[data-theme="dark"] .request-preview .xml-tag { color: #c084fc; font-weight: 750; }
+.sandbox-shell[data-theme="dark"] .request-preview .xml-value { color: #67e8f9; font-weight: 550; }
+.sandbox-shell[data-theme="dark"] .request-preview .xml-tag.xml-tag-focused { color: #422006; background: #fbbf24; outline-color: #f59e0b; box-shadow: 0 0 0 4px rgb(245 158 11 / 25%); }
 .extra-key-fields > p { grid-column: 1 / -1; margin: 0 0 10px; color: #64748b; font-size: 13px; line-height: 1.5; }
 .invoice-extra-field { grid-column: 1 / -1; padding: 14px; border: 1px solid #dce4f1; border-radius: 12px; background: #f8faff; }
 .invoice-extra-field > strong { display: block; margin-bottom: 9px; color: #334155; font-size: 14px; }
