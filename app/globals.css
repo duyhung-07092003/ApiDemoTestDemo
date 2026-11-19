@@ -691,3 +691,49 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 :root:has(.sandbox-shell[data-theme="dark"]) *::-webkit-scrollbar-track { background: #0e1726; }
 :root:has(.sandbox-shell[data-theme="dark"]) *::-webkit-scrollbar-thumb { background: #526782; border-color: #0e1726; }
 :root:has(.sandbox-shell[data-theme="dark"]) *::-webkit-scrollbar-thumb:hover { background: #7b93b1; }
+
+/* Clearer typography and a wider working canvas */
+body { font-family: Inter, "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif; font-size: 14px; }
+button, input, select, textarea { font-family: inherit; }
+.content { width: 100%; max-width: none; margin-inline: 0; padding: 28px 24px 24px; }
+.topbar { padding-inline: 26px; }
+.page-heading h1 { font-size: 30px; font-weight: 750; letter-spacing: -.65px; }
+.page-heading p, .section-top p, .card-title p { font-size: 13px; line-height: 1.55; }
+.section-top h2, .card-title h2 { font-size: 16px; font-weight: 700; }
+.eyebrow, .heading-badge, .breadcrumbs, .environment { font-size: 12px; }
+.template-meta strong, .api-picker-label, .api-option-meta strong { font-size: 13px; font-weight: 650; }
+.template-meta small, .api-option-meta small, .template-count { font-size: 11px; }
+.field > span, .field-label, .url-field > label, .config-field > label { color: #334155; font-size: 14px; font-weight: 650; line-height: 1.45; }
+.field input, .field select, .config-field input, .config-field select, .url-field input { min-height: 44px; font-size: 15px; font-weight: 500; }
+.field input::placeholder, .url-field input::placeholder { color: #7b8799; }
+.form-section-label { font-size: 16px; font-weight: 750; }
+.invoice-options h3, .product-heading strong, .invoice-summary-heading strong { font-size: 15px; font-weight: 700; }
+.invoice-options > p, .tax-mode-header > span, .product-heading > div > span, .invoice-summary-heading > span { font-size: 13px; line-height: 1.55; }
+.tax-mode-header strong { font-size: 14px; font-weight: 700; }
+.tax-mode-tabs button, .subtle-button, .result-tabs > button:not(.copy-button), .copy-button, .config-toggle-label { font-size: 12px; font-weight: 600; }
+.product-row .field input, .product-row .field select { min-height: 40px; font-size: 14px; }
+.invoice-summary .field > span { font-size: 13px; }
+.money-input-wrap > span, .required-note, .field-validation-message { font-size: 12px; }
+.response-body-heading, .response-footer, .response-header, .response-headers summary { font-size: 12px; }
+.response-empty strong, .response-empty p { font-size: 13px; }
+.response-empty p { line-height: 1.6; }
+.page-footer { font-size: 11px; }
+.workspace-copy strong, .profile b { font-size: 13px; font-weight: 650; }
+.workspace-copy small, .profile small, .side-link { font-size: 12px; }
+.status-card, .status-card p { font-size: 12px; line-height: 1.55; }
+.sandbox-shell[data-theme="dark"] .field > span,
+.sandbox-shell[data-theme="dark"] .field-label,
+.sandbox-shell[data-theme="dark"] .url-field > label,
+.sandbox-shell[data-theme="dark"] .config-field > label { color: #d5deeb; }
+.sandbox-shell[data-theme="dark"] .field input::placeholder,
+.sandbox-shell[data-theme="dark"] .url-field input::placeholder { color: #94a3b8; }
+@media (max-width: 900px) {
+  .content { padding: 24px 18px 20px; }
+  .topbar { padding-inline: 20px; }
+}
+@media (max-width: 640px) {
+  .content { padding: 20px 12px 16px; }
+  .topbar { padding-inline: 14px; }
+  .page-heading h1 { font-size: 26px; }
+  .field > span, .field-label, .url-field > label, .config-field > label { font-size: 13px; }
+}
