@@ -1,6 +1,7 @@
 "use client";
 
 import type { InvoiceInput } from "@/lib/softdreams/invoice";
+import { StyledSelect } from "./styled-select";
 
 export function InvoiceOptions({ value, onChange }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void }) {
   const mtt = value.pattern.trim().toUpperCase()[4] === "M";
@@ -8,17 +9,18 @@ export function InvoiceOptions({ value, onChange }: { value: InvoiceInput; onCha
     <h3>Loại mẫu & tùy chọn import</h3>
     <p>Các lựa chọn này dùng kiểm tra dữ liệu tại form; không thay đổi cấu hình dải trên Softdreams. Pattern/Serial phải trỏ đúng dải thật.</p>
     <div className="form-grid">
-      <label className="field"><span>Bộ quy tắc của mẫu</span><select value={value.profile} onChange={(e) => {
-        const receipt = e.target.value === "receipt";
-        onChange({ ...value, profile: e.target.value, ...(receipt ? { specialInvoice: "0", vatRate: -1, vatRateOther: "", currency: "VND", vatAmountOverride: "",
+      <label className="field"><span>Bộ quy tắc của mẫu</span><StyledSelect value={value.profile} options={[{ value: "tt78", label: "TT78 · GTGT / bán hàng (C78InvoiceVAT)" }, { value: "receipt", label: "Biên lai · Receipt" }]} onChange={(profile) => {
+        const receipt = profile === "receipt";
+        onChange({ ...value, profile, ...(receipt ? { specialInvoice: "0", vatRate: -1, vatRateOther: "", currency: "VND", vatAmountOverride: "",
           products: value.products.map((p) => ({ ...p, vat: -1, vatRateOther: "", vatAmountOverride: "", feature: p.feature === "4" ? "4" : "1" })) } : {}) });
-      }}><option value="tt78">TT78 · GTGT / bán hàng (C78InvoiceVAT)</option><option value="receipt">Biên lai · Receipt</option></select></label>
-      <label className="field"><span>Hàng hóa đặc trưng của dải</span><select value={value.specialInvoice} disabled={value.profile === "receipt"} onChange={(e) => onChange({ ...value, specialInvoice: e.target.value })}>
-        <option value="0">Thông thường</option><option value="1">1 · Mua bán xe</option><option value="2">2 · Dịch vụ vận chuyển</option><option value="3">3 · Vận chuyển trên TMĐT</option>
-      </select></label>
-      <label className="field"><span>Convert · Bảng mã dữ liệu</span><select value={value.convert} onChange={(e) => onChange({ ...value, convert: Number(e.target.value) })}>
-        <option value={0}>0 · Unicode (mặc định)</option><option value={1}>1 · TCVN3 → Unicode trên API</option>
-      </select></label>
+      }} /></label>
+      <label className="field"><span>Hàng hóa đặc trưng của dải</span><StyledSelect value={value.specialInvoice} disabled={value.profile === "receipt"} onChange={(specialInvoice) => onChange({ ...value, specialInvoice })} options={[
+        { value: "0", label: "Thông thường" }, { value: "1", label: "1 · Mua bán xe" },
+        { value: "2", label: "2 · Dịch vụ vận chuyển" }, { value: "3", label: "3 · Vận chuyển trên TMĐT" },
+      ]} /></label>
+      <label className="field"><span>Convert · Bảng mã dữ liệu</span><StyledSelect value={value.convert} onChange={(next) => onChange({ ...value, convert: Number(next) })} options={[
+        { value: 0, label: "0 · Unicode (mặc định)" }, { value: 1, label: "1 · TCVN3 → Unicode trên API" },
+      ]} /></label>
       <label className="invoice-option-check"><input type="checkbox" checked={value.updateCus} onChange={(e) => onChange({ ...value, updateCus: e.target.checked })} />updateCus · Tạo/cập nhật khách hàng theo CusCode</label>
     </div>
     <p>{mtt ? "Pattern máy tính tiền (MTT): kiểm tra VATRateOther và mã CQT nếu gửi." : "Mẫu thường: không gửi TaxAuthorityCode."} Thuế 8%, danh mục tỉnh/xã, mẫu miễn kiểm tra và cleaner chỉ xác minh được trên API.</p>

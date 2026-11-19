@@ -27,6 +27,7 @@ import { ExtraInput } from "./extra-input";
 import { XmlValidator } from "./xml-validator";
 import { InvoiceOptions, InvoiceAdvanced } from "./invoice-options";
 import { SpecialExtraFields } from "./special-extra-fields";
+import { StyledSelect } from "./styled-select";
 import { initialInvoice, buildInvoice, calculateInvoice, createEmptyInvoice, VAT_RATES, FEATURES } from "@/lib/softdreams/invoice";
 import { validateInvoice, invoiceIssues, INVOICE_LIMITS } from "@/lib/softdreams/validate";
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
@@ -735,11 +736,11 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         <span>Gross nhóm {invoice.vatRate === -3 ? "KHÁC" : VAT_RATES.find(([rate]) => rate === invoice.vatRate)?.[1].split(" · ")[0]}</span>
                         <GrossHelp rate={invoice.vatRate} />
                       </span>
-                      <select
-                        id="invoice-tax-rate"
+                      <StyledSelect
                         value={invoice.vatRate}
-                        onChange={(event) => {
-                          const rate = Number(event.target.value);
+                        options={VAT_RATES.map(([rate, label]) => ({ value: rate, label: `${rate} · ${label}` }))}
+                        onChange={(next) => {
+                          const rate = Number(next);
                           setInvoice({
                             ...invoice,
                             vatRate: rate,
@@ -748,9 +749,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                               : {}),
                           });
                         }}
-                      >
-                        {VAT_RATES.map(([rate, label]) => <option value={rate} key={rate}>{rate} · {label}</option>)}
-                      </select>
+                      />
                     </Field>
 {invoice.vatRate === -3 && <Field label="VATRateOther · Thuế suất khác" required>
   <input type="number" min="0" max="99.99" step="0.01" value={invoice.vatRateOther} onChange={(e) => setInvoice({ ...invoice, vatRateOther: e.target.value,
@@ -1030,10 +1029,8 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           />
                         </Field>
                         <Field label="Loại · Feature">
-  <select value={product.feature} onChange={(e) => updateProduct(index, "feature", e.target.value)}>
-    <option value="">Tự suy theo Amount (kiểu cũ)</option>
-    {FEATURES.map(([value, label]) => <option value={value} key={value}>{value} · {label}</option>)}
-  </select>
+  <StyledSelect value={product.feature} onChange={(next) => updateProduct(index, "feature", next)}
+    options={[{ value: "", label: "Tự suy theo Amount (kiểu cũ)" }, ...FEATURES.map(([value, label]) => ({ value, label: `${value} · ${label}` }))]} />
 </Field>
                     <Field label="Số lượng">
                           <input
@@ -1057,14 +1054,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         </Field>
                         {invoiceMode === "multi" && (
                           <Field label="VAT" required>
-                            <select
-                              value={product.vat}
-                              onChange={(e) =>
-                                updateProduct(index, "vat", e.target.value)
-                              }
-                            >
-                              {VAT_RATES.map(([rate, label]) => <option value={rate} key={rate}>{rate} · {label}</option>)}
-                            </select>
+                            <StyledSelect value={product.vat}
+                              onChange={(next) => updateProduct(index, "vat", next)}
+                              options={VAT_RATES.map(([rate, label]) => ({ value: rate, label: `${rate} · ${label}` }))} />
                           </Field>
                         )}
                         <Field label="Giảm giá · DiscountAmount">
