@@ -1,8 +1,16 @@
 import { ApiSandbox } from '@/components/api-sandbox'
-import { connection } from 'next/server'
-import { getSoftdreamsDomain } from '@/lib/softdreams/config.server'
 
-export default async function Page() {
-  await connection()
-  return <ApiSandbox domain={getSoftdreamsDomain()} />
+function getDomain(): string {
+  try {
+    const v = process.env.SOFTDREAMS_BASE_URL;
+    if (!v) return "";
+    const url = new URL(v);
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
+export default function Page() {
+  return <ApiSandbox domain={getDomain()} />
 }
