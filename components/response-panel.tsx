@@ -1,14 +1,18 @@
 'use client'
 
 import { Check, Code2, FileWarning, LoaderCircle } from 'lucide-react'
+import { Fragment, type ReactNode } from 'react'
 
 type Result = { status: number; statusText: string; duration: number; size: number; headers: Record<string, string>; body: string; ok: boolean; simulated?: boolean } | null
 
 const jsonTokenPattern = /("(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b)/g
 
-export function HighlightedJson({ text }: { text: string }) {
+export function HighlightedJson({ text, highlightRanges = [] }: { text: string; highlightRanges?: Array<{ start: number; end: number }> }) {
+  let offset = 0;
   return <>{text.split(jsonTokenPattern).map((token, index) => {
     if (!token) return null
+    const tokenStart = offset;
+    offset += token.length;
     const className = /^"(?:\\.|[^"\\])*"\s*:$/.test(token)
       ? 'json-key'
       : /^"/.test(token)
@@ -18,7 +22,20 @@ export function HighlightedJson({ text }: { text: string }) {
           : /^(true|false|null)$/.test(token)
             ? 'json-literal'
             : undefined
-    return className ? <span className={className} key={index}>{token}</span> : token
+    const ranges = highlightRanges.filter((range) => range.start < tokenStart + token.length && range.end > tokenStart).sort((a, b) => a.start - b.start);
+    if (ranges.length === 0) return className ? <span className={className} key={index}>{token}</span> : token;
+    const pieces: ReactNode[] = [];
+    let cursor = tokenStart;
+    for (const range of ranges) {
+      const start = Math.max(range.start, tokenStart);
+      const end = Math.min(range.end, tokenStart + token.length);
+      if (start > cursor) pieces.push(className ? <span className={className} key={`before-${cursor}`}>{text.slice(cursor, start)}</span> : text.slice(cursor, start));
+      if (end > Math.max(cursor, start)) pieces.push(<span className="json-focus" key={`focus-${start}`}>{text.slice(Math.max(cursor, start), end)}</span>);
+      cursor = Math.max(cursor, end);
+    }
+    const tokenEnd = tokenStart + token.length;
+    if (cursor < tokenEnd) pieces.push(className ? <span className={className} key={`after-${cursor}`}>{text.slice(cursor, tokenEnd)}</span> : text.slice(cursor, tokenEnd));
+    return <Fragment key={index}>{pieces}</Fragment>;
   })}</>
 }
 

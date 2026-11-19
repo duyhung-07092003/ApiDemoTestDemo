@@ -123,6 +123,30 @@ function HighlightedXml({ text, focusedTag, productIndex }: { text: string; focu
   );
 }
 
+function findRawXmlHighlightRanges(requestText: string, xmlText: string, selection: { tag: string; productIndex?: number } | null) {
+  if (!selection) return [];
+  const bodyStart = requestText.indexOf("\n\n") + 2;
+  const serializedXml = JSON.stringify(xmlText);
+  const xmlValueStart = requestText.indexOf(serializedXml, bodyStart);
+  if (bodyStart < 2 || xmlValueStart < 0) return [];
+  const matches: Array<{ start: number; end: number }> = [];
+  let currentProduct = -1;
+  const tagPattern = /<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>/g;
+  for (const match of xmlText.matchAll(tagPattern)) {
+    const token = match[0];
+    const closing = token.startsWith("</");
+    const name = token.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
+    if (name === "Product" && !closing) currentProduct += 1;
+    const sameProduct = selection.productIndex === undefined || selection.productIndex === currentProduct;
+    if (name === selection.tag && sameProduct && match.index !== undefined) {
+      const serializedPrefixLength = JSON.stringify(xmlText.slice(0, match.index)).length - 1;
+      const start = xmlValueStart + serializedPrefixLength;
+      matches.push({ start, end: start + token.length });
+    }
+  }
+  return matches;
+}
+
 export function ApiSandbox({ domain }: { domain: string }) {
   const [workspaceView, setWorkspaceView] = useState<"request" | "xml">("request");
   const [template, setTemplate] = useState<TemplateId>("invoice");
@@ -531,7 +555,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
     const tag = field?.dataset.xmlTag;
     if (!tag) { if (clearWhenUnmapped) setFocusedXml(null); return; }
     const productIndex = field.dataset.productIndex;
-    setFocusedXml({ tag, ...(productIndex !== undefined ? { productIndex: Number(productIndex) } : {}) });
+    setFocusedXml({ tag, productIndex: productIndex !== undefined ? Number(productIndex) : -1 });
   }
 
   return (
@@ -1534,9 +1558,6 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </button>
                   )}
                   <div className="result-spacer" />
-                  {isInvoice && activeTab === "request" && !prettyPreview && focusedXml && (
-                    <span className="xml-selection-hint">Đang chọn &lt;{focusedXml.tag}&gt; · mở XmlData để xem highlight</span>
-                  )}
                   {isInvoice && activeTab === "request" && (
                     <button aria-pressed={prettyPreview} onClick={() => setPrettyPreview(!prettyPreview)}>
                       {prettyPreview ? "Xem JSON gốc" : "Xem dễ đọc"}
@@ -1567,7 +1588,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   </div>
                 ) : (
                   <pre className="request-preview">
-                    {activeTab === "xml" ? <HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} /> : <HighlightedJson text={requestPreview} />}
+                    {activeTab === "xml"
+                      ? <HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} />
+                      : <HighlightedJson text={requestPreview} highlightRanges={isInvoice && !prettyPreview ? findRawXmlHighlightRanges(requestPreview, xmlBody, focusedXml) : []} />}
                   </pre>
                 )}
                 <div className="response-footer">
