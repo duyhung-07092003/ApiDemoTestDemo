@@ -624,7 +624,7 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .sandbox-shell[data-theme="dark"] .styled-select-item[data-highlighted] { color: #bfdbfe; background: #1b3455; }
 .sandbox-shell[data-theme="dark"] .styled-select-check { color: #60a5fa; }
 .form-panel { container-type: inline-size; }
-.xml-tag-focused { color: #7f1d1d; background: #fee2e2; border-radius: 4px; outline: 2px solid #ef4444; box-shadow: 0 0 0 4px rgb(239 68 68 / 22%); }
+.xml-tag-focused { color: #1e3a8a; background: #dbeafe; border-radius: 4px; outline: 2px solid #3b82f6; box-shadow: 0 0 0 4px rgb(59 130 246 / 24%); }
 .invoice-field-advanced, .product-advanced { grid-column: 1 / -1; border: 1px solid #dce4f1; border-radius: 12px; padding: 12px 14px; background: #f8faff; }
 .invoice-field-advanced > summary, .product-advanced > summary { cursor: pointer; color: #3157a4; font-weight: 650; }
 .invoice-field-advanced[open] > summary, .product-advanced[open] > summary { margin-bottom: 14px; }
@@ -744,10 +744,13 @@ button, input, select, textarea { font-family: inherit; }
 .workspace-label, .side-heading { font-size: 11px; letter-spacing: .9px; }
 .request-preview .xml-tag { color: #dc2626; font-weight: 750; }
 .request-preview .xml-value { color: #15803d; font-weight: 600; }
-.request-preview .xml-tag.xml-tag-focused { color: #7f1d1d; background: #fee2e2; }
+.request-preview .xml-tag.xml-tag-focused { color: #1e3a8a; background: #dbeafe; }
 .sandbox-shell[data-theme="dark"] .request-preview .xml-tag { color: #f87171; font-weight: 750; }
 .sandbox-shell[data-theme="dark"] .request-preview .xml-value { color: #4ade80; font-weight: 600; }
-.sandbox-shell[data-theme="dark"] .request-preview .xml-tag.xml-tag-focused { color: #fff1f2; background: #991b1b; outline-color: #ef4444; box-shadow: 0 0 0 4px rgb(239 68 68 / 28%); }
+.sandbox-shell[data-theme="dark"] .request-preview .xml-tag.xml-tag-focused { color: #eff6ff; background: #1d4ed8; outline-color: #60a5fa; box-shadow: 0 0 0 4px rgb(59 130 246 / 32%); }
+.xml-selection-hint { align-self: center; color: #1d4ed8; font-size: 12px; font-weight: 650; white-space: nowrap; }
+.sandbox-shell[data-theme="dark"] .xml-selection-hint { color: #93c5fd; }
+@media (max-width: 760px) { .xml-selection-hint { display: none; } }
 .extra-key-fields > p { grid-column: 1 / -1; margin: 0 0 10px; color: #64748b; font-size: 13px; line-height: 1.5; }
 .invoice-extra-field { grid-column: 1 / -1; padding: 14px; border: 1px solid #dce4f1; border-radius: 12px; background: #f8faff; }
 .invoice-extra-field > strong { display: block; margin-bottom: 9px; color: #334155; font-size: 14px; }

@@ -526,10 +526,10 @@ export function ApiSandbox({ domain }: { domain: string }) {
     }));
   }
 
-  function highlightFormField(target: EventTarget | null) {
-    const field = target instanceof HTMLElement ? target.closest<HTMLElement>("[data-xml-tag]") : null;
+  function highlightFormField(target: EventTarget | null, clearWhenUnmapped = false) {
+    const field = target instanceof Element ? target.closest<HTMLElement>("[data-xml-tag]") : null;
     const tag = field?.dataset.xmlTag;
-    if (!tag) { setFocusedXml(null); return; }
+    if (!tag) { if (clearWhenUnmapped) setFocusedXml(null); return; }
     const productIndex = field.dataset.productIndex;
     setFocusedXml({ tag, ...(productIndex !== undefined ? { productIndex: Number(productIndex) } : {}) });
   }
@@ -746,7 +746,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
           <div className="builder-layout-v2">
 
             {/* LEFT — Invoice / form data */}
-            <section className="form-panel" onFocusCapture={(event) => highlightFormField(event.target)} onMouseOverCapture={(event) => highlightFormField(event.target)}>
+            <section className="form-panel" onFocusCapture={(event) => highlightFormField(event.target, true)} onMouseOverCapture={(event) => highlightFormField(event.target)}>
               <div className="card-heading">
                 <div className="card-title">
                   <span className="step-number">01</span>
@@ -1534,6 +1534,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </button>
                   )}
                   <div className="result-spacer" />
+                  {isInvoice && activeTab === "request" && !prettyPreview && focusedXml && (
+                    <span className="xml-selection-hint">Đang chọn &lt;{focusedXml.tag}&gt; · mở XmlData để xem highlight</span>
+                  )}
                   {isInvoice && activeTab === "request" && (
                     <button aria-pressed={prettyPreview} onClick={() => setPrettyPreview(!prettyPreview)}>
                       {prettyPreview ? "Xem JSON gốc" : "Xem dễ đọc"}
