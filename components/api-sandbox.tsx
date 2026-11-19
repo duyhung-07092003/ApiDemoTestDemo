@@ -1085,7 +1085,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="Tên địa điểm kinh doanh"
                       />
                     </Field>
-                    <Field label="Địa chỉ địa điểm · LocationAddress">
+                    <Field label="Địa chỉ địa điểm kinh doanh · LocationAddress">
                       <input
                         value={invoice.locationAddress}
                         onChange={(e) =>
