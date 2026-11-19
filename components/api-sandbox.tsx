@@ -124,25 +124,34 @@ function HighlightedXml({ text, focusedTag, productIndex }: { text: string; focu
 }
 
 function findRawXmlHighlightRanges(requestText: string, xmlText: string, selection: { tag: string; productIndex?: number } | null) {
-  if (!selection) return [];
   const bodyStart = requestText.indexOf("\n\n") + 2;
   const serializedXml = JSON.stringify(xmlText);
   const xmlValueStart = requestText.indexOf(serializedXml, bodyStart);
   if (bodyStart < 2 || xmlValueStart < 0) return [];
-  const matches: Array<{ start: number; end: number }> = [];
+  const matches: Array<{ start: number; end: number; className: string }> = [];
   let currentProduct = -1;
-  const tagPattern = /<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>/g;
-  for (const match of xmlText.matchAll(tagPattern)) {
-    const token = match[0];
-    const closing = token.startsWith("</");
-    const name = token.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
-    if (name === "Product" && !closing) currentProduct += 1;
-    const sameProduct = selection.productIndex === undefined || selection.productIndex === currentProduct;
-    if (name === selection.tag && sameProduct && match.index !== undefined) {
-      const serializedPrefixLength = JSON.stringify(xmlText.slice(0, match.index)).length - 1;
-      const start = xmlValueStart + serializedPrefixLength;
-      matches.push({ start, end: start + token.length });
+  const segments = xmlText.split(/(<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>)/g);
+  let xmlOffset = 0;
+  let insideElementValue = false;
+  for (const segment of segments) {
+    const isTag = /^<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>$/.test(segment);
+    let className: string | undefined;
+    if (isTag) {
+      const closing = /^<\//.test(segment);
+      const selfClosing = /\/>$/.test(segment);
+      const name = segment.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
+      if (name === "Product" && !closing) currentProduct += 1;
+      const sameProduct = !selection || selection.productIndex === undefined || selection.productIndex === currentProduct;
+      className = selection?.tag === name && sameProduct ? "json-focus" : "raw-xml-tag";
+      if (closing) insideElementValue = false;
+      else if (!selfClosing) insideElementValue = true;
+    } else if (insideElementValue && /\S/.test(segment)) className = "raw-xml-value";
+    if (className) {
+      const start = xmlValueStart + JSON.stringify(xmlText.slice(0, xmlOffset)).length - 1;
+      const end = xmlValueStart + JSON.stringify(xmlText.slice(0, xmlOffset + segment.length)).length - 1;
+      matches.push({ start, end, className });
     }
+    xmlOffset += segment.length;
   }
   return matches;
 }
@@ -992,7 +1001,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Hình thức thanh toán · PaymentMethod" xmlTag="PaymentMethod" required help="Chuỗi tự do tối đa 50 ký tự, ví dụ TM, CK hoặc TM/CK.">
+                    <Field label="Hình thức thanh toán" xmlTag="PaymentMethod" required help="PaymentMethod: chuỗi tự do tối đa 50 ký tự, ví dụ TM, CK hoặc TM/CK.">
                       <input list="payment-methods" maxLength={50} value={invoice.payment} onChange={(e) => setInvoice({ ...invoice, payment: e.target.value })} />
                       <datalist id="payment-methods"><option value="TM" /><option value="CK" /><option value="TM/CK" /></datalist>
                     </Field>
@@ -1023,7 +1032,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="091307006293"
                       />
                     </Field>
-                    <h3 className="form-section-label">Ngày, bảng kê & địa điểm kinh doanh</h3>
+                    <h3 className="form-section-label">Ngày hóa đơn</h3>
                     <Field label="Ngày phát sinh · ArisingDate" xmlTag="ArisingDate" help="Để trống: API dùng ngày hiện tại. Năm phải trùng Pattern; gửi XML dd/MM/yyyy.">
 <DateInput
                         value={invoice.date}
@@ -1032,6 +1041,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
+                    <h3 className="form-section-label">Bảng kê</h3>
                     <Field label="Số phụ lục · ListAttachNum">
                       <input
                         value={invoice.listAttachNum}
@@ -1049,6 +1059,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
+                    <h3 className="form-section-label">Địa điểm kinh doanh</h3>
                     <Field label="Mã địa điểm kinh doanh · LocationCode">
                       <input
                         value={invoice.locationCode}
@@ -1713,8 +1724,8 @@ function Field({
   const productIndex = validationField?.match(/^products\[(\d+)\]/)?.[1];
   return (
     <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={derivedTag} data-product-index={productIndex}>
-      <span>
-        {label}
+      <span title={label}>
+        <span className="field-label-text">{label}</span>
         {required && (
           <b className="required-star" aria-label="bắt buộc">
             *

@@ -7,7 +7,7 @@ type Result = { status: number; statusText: string; duration: number; size: numb
 
 const jsonTokenPattern = /("(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b)/g
 
-export function HighlightedJson({ text, highlightRanges = [] }: { text: string; highlightRanges?: Array<{ start: number; end: number }> }) {
+export function HighlightedJson({ text, highlightRanges = [] }: { text: string; highlightRanges?: Array<{ start: number; end: number; className?: string }> }) {
   let offset = 0;
   return <>{text.split(jsonTokenPattern).map((token, index) => {
     if (!token) return null
@@ -30,7 +30,7 @@ export function HighlightedJson({ text, highlightRanges = [] }: { text: string; 
       const start = Math.max(range.start, tokenStart);
       const end = Math.min(range.end, tokenStart + token.length);
       if (start > cursor) pieces.push(className ? <span className={className} key={`before-${cursor}`}>{text.slice(cursor, start)}</span> : text.slice(cursor, start));
-      if (end > Math.max(cursor, start)) pieces.push(<span className="json-focus" key={`focus-${start}`}>{text.slice(Math.max(cursor, start), end)}</span>);
+      if (end > Math.max(cursor, start)) pieces.push(<span className={range.className ?? "json-focus"} key={`focus-${start}`}>{text.slice(Math.max(cursor, start), end)}</span>);
       cursor = Math.max(cursor, end);
     }
     const tokenEnd = tokenStart + token.length;

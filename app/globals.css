@@ -750,6 +750,17 @@ button, input, select, textarea { font-family: inherit; }
 .sandbox-shell[data-theme="dark"] .request-preview .xml-tag.xml-tag-focused { color: #eff6ff; background: #1d4ed8; outline-color: #60a5fa; box-shadow: 0 0 0 4px rgb(59 130 246 / 32%); }
 .request-preview .json-focus { color: #1e3a8a; background: #dbeafe; border-radius: 3px; box-shadow: 0 0 0 1px #93c5fd; }
 .sandbox-shell[data-theme="dark"] .request-preview .json-focus { color: #eff6ff; background: #1d4ed8; box-shadow: 0 0 0 1px #60a5fa; }
+.request-preview .raw-xml-tag { color: #dc2626; font-weight: 750; }
+.request-preview .raw-xml-value { color: #15803d; font-weight: 600; }
+.sandbox-shell[data-theme="dark"] .request-preview .raw-xml-tag { color: #f87171; font-weight: 750; }
+.sandbox-shell[data-theme="dark"] .request-preview .raw-xml-value { color: #4ade80; font-weight: 600; }
+.field > span:first-child { min-width: 0; min-height: 23px; gap: 4px; white-space: nowrap; }
+.field-label-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sandbox-shell .field input[type="date"] { height: 46px; min-height: 46px; padding-inline: 13px; border-radius: 12px; background-color: #fff; font-family: inherit; font-size: 15px; font-weight: 550; }
+.sandbox-shell .field input[type="date"]::-webkit-calendar-picker-indicator { width: 20px; height: 20px; margin-left: 6px; padding: 3px; border-radius: 7px; background-color: #eff6ff; cursor: pointer; }
+.sandbox-shell .field input[type="date"]:focus { border-color: #6086d6; box-shadow: 0 0 0 3px #6086d624; }
+.sandbox-shell[data-theme="dark"] .field input[type="date"] { background-color: #0e1929; }
+.sandbox-shell[data-theme="dark"] .field input[type="date"]::-webkit-calendar-picker-indicator { background-color: #1c3454; }
 .extra-key-fields > p { grid-column: 1 / -1; margin: 0 0 10px; color: #64748b; font-size: 13px; line-height: 1.5; }
 .invoice-extra-field { grid-column: 1 / -1; padding: 14px; border: 1px solid #dce4f1; border-radius: 12px; background: #f8faff; }
 .invoice-extra-field > strong { display: block; margin-bottom: 9px; color: #334155; font-size: 14px; }
