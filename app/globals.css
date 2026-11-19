@@ -496,6 +496,7 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .xml-validation-status.has-errors { color: var(--xml-error); background: var(--xml-error-bg); border-color: var(--xml-error-line); }
 .xml-validation-status.has-warnings { color: var(--xml-warning); background: var(--xml-warning-bg); border-color: var(--xml-warning-line); }
 .xml-validation-status.passed { color: var(--xml-success); background: var(--xml-success-bg); border-color: var(--xml-success-line); }
+.xml-request-extracted { padding: 10px 12px; margin: 0 0 12px; color: var(--xml-accent); background: var(--xml-accent-bg); border: 1px solid var(--xml-accent-line); border-radius: 9px; font-size: 13px; }
 .xml-issue-list { list-style: none; padding: 0; margin: 16px 0; max-height: 520px; overflow: auto; }
 .xml-issue { padding: 16px; border: 1px solid var(--xml-line); border-left: 3px solid var(--xml-error-line); background: var(--xml-surface); border-radius: 10px; margin-bottom: 12px; display: grid; gap: 9px; }
 .xml-issue.warning { border-left-color: var(--xml-warning-line); }

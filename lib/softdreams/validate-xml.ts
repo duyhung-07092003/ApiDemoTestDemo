@@ -1,6 +1,6 @@
 export type XmlIssue = { level: "error" | "warning"; path: string; message: string; suggestion: string };
 export type XmlOptions = { household: boolean; businessCustomer: boolean; specialGoods: boolean };
-export type XmlReport = { issues: XmlIssue[]; invoices: number; formatted: string };
+export type XmlReport = { issues: XmlIssue[]; invoices: number; formatted: string; normalizedXml?: string; extractedFromRequest?: boolean };
 const children = (node: Element, name: string) => Array.from(node.children).filter((child) => child.tagName === name);
 const text = (node: Element, name: string) => children(node, name)[0]?.textContent?.trim() || "";
 const invoiceTags = new Set(("Ikey Fkey InvNo LocationCode LocationName LocationAddress StoreCode StoreName CusCode Buyer CusName CusEmails Email EmailCC CusAddress CusBankName CusBankNo CusPhone CusTaxCode CusIdentification PassportNo ProvinceCode ProvinceName CommuneCode CommuneName PaymentMethod ArisingDate ExchangeRate CurrencyUnit Extra Products Total VATRate VATRateOther VATAmount Amount Discount DiscountAmount AmountInWords ListAttachNum ListAttachDate GrossValue GrossValue0 GrossValue5 GrossValue8 GrossValue10 GrossValueNDeclared GrossValueContractor VatAmount0 VatAmount5 VatAmount8 VatAmount10 VatAmountNDeclared VatAmountContractor Amount0 Amount5 Amount8 Amount10 AmountNDeclared AmountOther GrossCTTC VatAmountCTTC AmountCTTC").split(" "));
@@ -159,10 +159,38 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
 export function validateXmlData(source: string, options: XmlOptions): XmlReport {
   const fail = (message: string, suggestion: string): XmlReport => ({ issues: [{ level: "error", path: "/", message, suggestion }], invoices: 0, formatted: "" });
   if (!source.trim()) return fail("Chưa nhập XmlData.", "Dán XML bắt đầu bằng <Invoices>.");
-  if (new TextEncoder().encode(source).length > 2 * 1024 * 1024) return fail("XML vượt giới hạn kiểm tra 2 MB.", "Chia thành các phần nhỏ hơn.");
-  if (/<!DOCTYPE|<!ENTITY/i.test(source)) return fail("Không hỗ trợ DOCTYPE/ENTITY.", "Dùng XML hóa đơn thuần, không khai báo thực thể ngoài.");
-  const document = new DOMParser().parseFromString(source, "application/xml");
+  const unescapeTagSlashes = (value: string) => value.replace(/\\([<>])/g, "$1");
+  let input = unescapeTagSlashes(source.trim().replace(/^\uFEFF/, ""));
+  let extractedFromRequest = false;
+  const requestLine = /^(?:POST|PUT|PATCH|GET)\s+\S+/i.test(input);
+  if (!input.startsWith("<")) {
+    let jsonText = input;
+    if (requestLine) {
+      const headerEnd = input.search(/\r?\n\r?\n/);
+      if (headerEnd >= 0) jsonText = input.slice(headerEnd).replace(/^\r?\n\r?\n/, "").trim();
+      else {
+        const bodyStart = input.search(/\r?\n\s*\{/);
+        if (bodyStart >= 0) jsonText = input.slice(bodyStart).trim();
+      }
+    }
+    try {
+      const requestBody: unknown = JSON.parse(jsonText);
+      if (requestBody && typeof requestBody === "object" && !Array.isArray(requestBody) && typeof (requestBody as Record<string, unknown>).XmlData === "string") {
+        input = unescapeTagSlashes((requestBody as { XmlData: string }).XmlData.trim());
+        extractedFromRequest = true;
+      }
+    } catch { /* Keep malformed JSON/request text for a useful format error below. */ }
+    if (!input.startsWith("<")) {
+      return fail(
+        "Không tìm thấy XML bắt đầu bằng < hoặc trường XmlData trong request JSON.",
+        "Dán XML thuần, JSON có trường XmlData, hoặc toàn bộ request HTTP gồm POST, headers và JSON body.",
+      );
+    }
+  }
+  if (new TextEncoder().encode(input).length > 2 * 1024 * 1024) return fail("XML vượt giới hạn kiểm tra 2 MB.", "Chia thành các phần nhỏ hơn.");
+  if (/<!DOCTYPE|<!ENTITY/i.test(input)) return fail("Không hỗ trợ DOCTYPE/ENTITY.", "Dùng XML hóa đơn thuần, không khai báo thực thể ngoài.");
+  const document = new DOMParser().parseFromString(input, "application/xml");
   const parseError = document.querySelector("parsererror");
   if (parseError) return fail("XML sai cú pháp: " + (parseError.textContent || "").slice(0, 1000), "Sửa thẻ đóng/mở, ký tự & hoặc CDATA ở vị trí trình phân tích thông báo.");
-  return validateXmlDocument(document, options);
+  return { ...validateXmlDocument(document, options), normalizedXml: input, extractedFromRequest };
 }

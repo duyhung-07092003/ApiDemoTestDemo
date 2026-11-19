@@ -22,8 +22,8 @@ export function XmlValidator({ currentXml }: { currentXml: string }) {
         <span className="xml-validator-badge">Kiểm tra tại máy</span>
       </h3>
       <div className="xml-validator-content">
-        <p>Dán XmlData để tìm thẻ thiếu, sai cấu trúc và chênh lệch số tiền. Chỉ kiểm tra trên trình duyệt.</p>
-        <label htmlFor="xml-validation-source">XmlData · XML đầy đủ</label>
+        <p>Dán XML thuần hoặc cả request HTTP/JSON có trường XmlData để tìm thẻ thiếu, sai cấu trúc và chênh lệch số tiền. Chỉ kiểm tra trên trình duyệt.</p>
+        <label htmlFor="xml-validation-source">XML hoặc request HTTP/JSON chứa XmlData</label>
         <textarea ref={editor} id="xml-validation-source" className="body-editor" spellCheck={false} value={source}
           onChange={(event) => change(event.target.value)} placeholder={"<Invoices>\n  <Inv>\n    <Invoice>...</Invoice>\n  </Inv>\n</Invoices>"} />
         <div className="xml-validation-options">
@@ -38,7 +38,7 @@ export function XmlValidator({ currentXml }: { currentXml: string }) {
           ))}
         </div>
         <div className="xml-validator-actions">
-          <button type="button" className="send-button" onClick={() => { setReport(validateXmlData(source, options)); setCopied(false); }}>
+          <button type="button" className="send-button" onClick={() => { const nextReport = validateXmlData(source, options); if (nextReport.normalizedXml) setSource(nextReport.normalizedXml); setReport(nextReport); setCopied(false); }}>
             <ClipboardCheck size={15} />Kiểm tra XML
           </button>
           <button type="button" className="subtle-button" onClick={() => change(currentXml)}><Braces size={15} />Lấy XML từ form</button>
@@ -46,6 +46,7 @@ export function XmlValidator({ currentXml }: { currentXml: string }) {
         </div>
         <p className="xml-validator-note">Chọn đúng loại nghiệp vụ để kiểm tra các trường bắt buộc có điều kiện. Chưa kiểm tra Ikey đã tồn tại, tài khoản, ký hiệu hóa đơn, danh mục mã và các quy tắc riêng trên Softdreams.</p>
         {report && <div className="xml-validation-report" aria-live="polite">
+          {report.extractedFromRequest && <p className="xml-request-extracted">Đã tách XmlData khỏi request; ô nhập hiện hiển thị XML được kiểm tra.</p>}
           <div className={"xml-validation-status " + (errors ? "has-errors" : warnings ? "has-warnings" : "passed")}>
             <strong>{errors ? "Cần sửa lỗi XML" : warnings ? "Cần đối chiếu cảnh báo" : "Đạt các quy tắc đã kiểm tra"}</strong>
             <span>{report.invoices} hóa đơn · {errors} lỗi · {warnings} cảnh báo</span>
