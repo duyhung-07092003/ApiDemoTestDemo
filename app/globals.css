@@ -658,3 +658,20 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
   .product-row { gap: 10px; padding: 12px; }
   .invoice-summary { gap: 13px; padding: 15px; }
 }
+.content { padding-left: 24px; padding-right: 24px; }
+.form-panel { padding-left: 16px; padding-right: 16px; }
+.invoice-options { padding-left: 14px; padding-right: 14px; }
+.product-list { padding-left: 10px; padding-right: 10px; }
+.product-row { padding-left: 10px; padding-right: 10px; }
+.invoice-summary { padding-left: 12px; padding-right: 12px; }
+@media (max-width: 900px) {
+  .content { padding-left: 16px; padding-right: 16px; }
+}
+@media (max-width: 640px) {
+  .content { padding-left: 8px; padding-right: 8px; }
+  .form-panel { padding-left: 10px; padding-right: 10px; }
+  .invoice-options { padding-left: 10px; padding-right: 10px; }
+  .product-list { padding-left: 8px; padding-right: 8px; }
+  .product-row { padding-left: 8px; padding-right: 8px; }
+  .invoice-summary { padding-left: 8px; padding-right: 8px; }
+}
