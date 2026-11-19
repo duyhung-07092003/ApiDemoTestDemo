@@ -1,5 +1,6 @@
+import { xmlFormIssues } from "./xml-form-rules";
 export type XmlIssue = { level: "error" | "warning"; path: string; message: string; suggestion: string };
-export type XmlOptions = { household: boolean; businessCustomer: boolean; specialGoods: boolean };
+export type XmlOptions = { household: boolean; businessCustomer: boolean; specialGoods: boolean; api?: string; profile?: string; specialInvoice?: string; pattern?: string; serial?: string };
 export type XmlReport = { issues: XmlIssue[]; invoices: number; formatted: string; normalizedXml?: string; extractedFromRequest?: boolean };
 const children = (node: Element, name: string) => Array.from(node.children).filter((child) => child.tagName === name);
 const text = (node: Element, name: string) => children(node, name)[0]?.textContent?.trim() || "";
@@ -75,6 +76,7 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
     invoices.forEach((invoice) => {
       count++;
       inspect(invoice, invoiceTags, path);
+      issues.push(...xmlFormIssues(invoice, wrapper, options, path));
       if (!text(invoice, "Ikey") && !text(wrapper, "key")) required(invoice, "Ikey", path);
       required(invoice, "PaymentMethod", path);
       const key = text(invoice, "Ikey") || text(wrapper, "key");
@@ -86,10 +88,12 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
       if (options.household) for (const name of ["LocationCode", "LocationName", "LocationAddress"]) required(invoice, name, path);
       if (options.businessCustomer) required(invoice, "CusTaxCode", path);
       if (options.specialGoods) for (const name of ["CusName", "CusAddress", "CusPhone", "CusTaxCode", "ProvinceCode", "ProvinceName", "CommuneCode", "CommuneName"]) required(invoice, name, path);
-      required(invoice, "CurrencyUnit", path);
-      required(invoice, "AmountInWords", path);
-      if (!text(invoice, "Buyer") && !text(invoice, "CusName")) required(invoice, "CusName", path);
-      if (text(invoice, "CusTaxCode")) { required(invoice, "CusName", path); required(invoice, "CusAddress", path); }
+      if (options.profile !== "receipt") {
+        required(invoice, "CurrencyUnit", path);
+        required(invoice, "AmountInWords", path);
+        if (!text(invoice, "Buyer") && !text(invoice, "CusName")) required(invoice, "CusName", path);
+        if (text(invoice, "CusTaxCode")) { required(invoice, "CusName", path); required(invoice, "CusAddress", path); }
+      }
       if (children(invoice, "PaymentType").length && !text(invoice, "PaymentType")) error(path + "/PaymentType", "PaymentType rỗng có thể gây lỗi 500.", "Bỏ thẻ hoặc gửi số nguyên.");
       if (text(invoice, "InvNo") && Number(text(invoice, "InvNo")) !== 0) warn(path + "/InvNo", "Import tạo hóa đơn nháp chưa cấp số.", "Để InvNo rỗng hoặc 0 theo mẫu; không coi đây là thao tác phát hành.");
       extra(invoice, path);
@@ -101,7 +105,8 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
         const rate = number(node, "VATRate", nodePath, false) ?? (node !== invoice ? number(invoice, "VATRate", path, false) : undefined);
         if (rate === -3) {
           const other = number(node, "VATRateOther", nodePath);
-          if (other !== undefined && (other < 0 || other > 99.99 || !/^\d{1,2}(?:\.\d{1,2})?$/.test(text(node, "VATRateOther")))) error(nodePath + "/VATRateOther", "Thuế suất khác cần từ 0 đến 99.99, tối đa 2 số thập phân.", "Nhập VATRateOther theo phần trăm.");
+          const otherFormat = options.pattern?.trim().toUpperCase()[4] === "M" ? /^(?:\d{1,2}(?:\.\d{0,2})?|\.\d{1,2})$/ : /^\d{1,2}(?:\.\d{1,2})?$/;
+          if (other !== undefined && (other < 0 || other > 99.99 || !otherFormat.test(text(node, "VATRateOther")))) error(nodePath + "/VATRateOther", "Thuế suất khác cần từ 0 đến 99.99, tối đa 2 số thập phân.", "Nhập VATRateOther theo phần trăm.");
         } else if (rate !== undefined && ![-7, -6, -5, -3, -2, -1, 0, 5, 8, 10].includes(rate)) {
           warn(nodePath + "/VATRate", "Mã thuế suất chưa có quy tắc đối chiếu trong bộ kiểm tra.", "Đối chiếu phụ lục VII.3 của mẫu hóa đơn; không tự đổi mã thuế.");
         }
@@ -158,11 +163,21 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
 
 export function validateXmlData(source: string, options: XmlOptions): XmlReport {
   const fail = (message: string, suggestion: string): XmlReport => ({ issues: [{ level: "error", path: "/", message, suggestion }], invoices: 0, formatted: "" });
+  if (options.api && options.api !== "invoice") return fail("Chưa có bộ quy tắc nghiệp vụ cho API đã chọn.", "Tài liệu hiện tại chỉ mô tả importInvoice. Cần bổ sung nghiệp vụ riêng cho API này.");
+  if (options.profile && !["tt78", "receipt"].includes(options.profile)) return fail("Loại mẫu chưa được hỗ trợ kiểm tra.", "Chọn đúng loại mẫu có bộ quy tắc hoặc bổ sung tài liệu XML riêng.");
   if (!source.trim()) return fail("Chưa nhập XmlData.", "Dán XML bắt đầu bằng <Invoices>.");
   const unescapeTagSlashes = (value: string) => value.replace(/\\([<>])/g, "$1");
   let input = unescapeTagSlashes(source.trim().replace(/^\uFEFF/, ""));
   let extractedFromRequest = false;
   const requestLine = /^(?:POST|PUT|PATCH|GET)\s+\S+/i.test(input);
+  if (requestLine) {
+    const line = input.split(/\r?\n/)[0];
+    const match = /^(\S+)\s+(\S+)/.exec(line);
+    try {
+      const url = new URL(match![2], "https://validator.local");
+      if (match![1].toUpperCase() !== "POST" || url.pathname.toLowerCase().replace(/\/$/, "") !== "/api/publish/importinvoice") return fail("Request không khớp API importInvoice đã chọn.", "Dùng POST /api/publish/importInvoice hoặc chọn đúng API cần kiểm tra.");
+    } catch { return fail("URL request không hợp lệ.", "Kiểm tra dòng POST và URL đầu request."); }
+  }
   if (!input.startsWith("<")) {
     let jsonText = input;
     if (requestLine) {
@@ -176,6 +191,11 @@ export function validateXmlData(source: string, options: XmlOptions): XmlReport 
     try {
       const requestBody: unknown = JSON.parse(jsonText);
       if (requestBody && typeof requestBody === "object" && !Array.isArray(requestBody) && typeof (requestBody as Record<string, unknown>).XmlData === "string") {
+        const payload = requestBody as Record<string, unknown>;
+        if (payload.Pattern !== undefined && typeof payload.Pattern !== "string") return fail("Pattern phải là chuỗi.", "Sửa Pattern trong JSON request.");
+        if (payload.Serial !== undefined && typeof payload.Serial !== "string") return fail("Serial phải là chuỗi.", "Sửa Serial trong JSON request.");
+        if (payload.Convert !== undefined && ![0, 1].includes(payload.Convert as number)) return fail("Convert chỉ nhận số 0 hoặc 1.", "Sửa Convert trong JSON request.");
+        options = { ...options, pattern: typeof payload.Pattern === "string" ? payload.Pattern : options.pattern, serial: typeof payload.Serial === "string" ? payload.Serial : options.serial };
         input = unescapeTagSlashes((requestBody as { XmlData: string }).XmlData.trim());
         extractedFromRequest = true;
       }

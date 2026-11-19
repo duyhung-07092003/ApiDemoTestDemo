@@ -715,7 +715,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
           <div className="section-top">
             <div><h2>Kiểm tra XML hóa đơn</h2><p>Dán XmlData và xem lỗi theo từng thẻ trước khi gửi API.</p></div>
           </div>
-          <XmlValidator currentXml={xmlBody} />
+          <XmlValidator currentXml={xmlBody} currentContext={{ api: template, profile: invoice.profile, specialInvoice: invoice.specialInvoice, pattern: invoice.pattern, serial: invoice.serial }} />
         </div>
         <div className="content" hidden={workspaceView !== "request"}>
           {/* ── Template picker ── */}
