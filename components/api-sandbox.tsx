@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { createContext, useContext, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Braces,
@@ -38,6 +38,7 @@ type TemplateId =
   | "external-digest"
   | "lookup-invoices";
 type AuthType = "none" | "bearer" | "basic" | "apikey";
+const InvoiceValidationContext = createContext<Map<string, string[]>>(new Map());
 type Result = {
   status: number;
   statusText: string;
@@ -209,6 +210,11 @@ export function ApiSandbox({ domain }: { domain: string }) {
   }, [auth, method, domain, apiPath, body, apiKeyName, isInvoice, xmlBody, template]);
   const invoiceTotals = useMemo(() => calculateInvoice(invoice), [invoice]);
   const formIssues = useMemo(() => invoiceIssues({ ...invoice, tax: invoice.tax.replace(/\s/g, "") }), [invoice]);
+  const invoiceIssuesByField = useMemo(() => {
+    const grouped = new Map<string, string[]>();
+    for (const issue of formIssues) grouped.set(issue.field, [...(grouped.get(issue.field) ?? []), issue.message]);
+    return grouped;
+  }, [formIssues]);
   function clearForm() {
     setInvoice(createEmptyInvoice());
     setAdjustment({ originalIkey: "", reason: "" });
@@ -702,9 +708,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
               </div>
 
               {isInvoice ? (
+                <InvoiceValidationContext.Provider value={invoiceIssuesByField}>
                 <>
                   <InvoiceOptions value={invoice} onChange={setInvoice} />
-{formIssues.length > 0 && <details className="invoice-form-issues"><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><code>{issue.field}</code>: {issue.message}</li>)}</ul></details>}
+{formIssues.length > 0 && <details className="invoice-form-issues" open><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><button type="button" onClick={() => {
+  const field = document.getElementById(`invoice-field-${encodeURIComponent(issue.field)}`);
+  field?.scrollIntoView({ behavior: "smooth", block: "center" });
+  field?.querySelector<HTMLElement>("input, textarea, button, [tabindex]")?.focus({ preventScroll: true });
+}}><code>{issue.field}</code>: {issue.message}</button></li>)}</ul></details>}
 <section
                     className="tax-mode-section"
                     aria-label="Thiết lập mẫu thuế"
@@ -786,7 +797,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         </Field>
                       </>
                     )}
-                    <Field
+                    <Field validationField="pattern"
                       label="Pattern · Ký hiệu hóa đơn"
                       help="Tự trim và viết hoa. Bỏ cả Pattern/Serial: API chọn dải khả dụng năm hiện tại; truyền một trường: API tìm theo trường đó."
                     >
@@ -798,7 +809,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="1C26TAA"
                       />
                     </Field>
-                    <Field
+                    <Field validationField="serial"
                       label="Serial · Ký hiệu mẫu số"
                       help="Có thể để trống. Nếu truyền cùng Pattern thì hai giá trị phải khớp dải khả dụng."
                     >
@@ -810,7 +821,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="1"
                       />
                     </Field>
-                    <Field
+                    <Field validationField="ikey"
                       label="Ikey · Khóa tích hợp"
                       required
                       help="Mã duy nhất nhận diện hóa đơn."
@@ -980,14 +991,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       ["exchangeRate", "ExchangeRate · Tỷ giá"],
                       ["currency", "CurrencyUnit · Tiền tệ"],
                     ] as const).map(([key, label]) => (
-                      <Field key={key} label={label} required={key === "currency" && invoice.profile !== "receipt" || ["provinceCode", "provinceName", "communeCode", "communeName"].includes(key) && invoice.specialInvoice === "1"}>
+                      <Field key={key} validationField={key} label={label} required={key === "currency" && invoice.profile !== "receipt" || ["provinceCode", "provinceName", "communeCode", "communeName"].includes(key) && invoice.specialInvoice === "1"}>
                         <input maxLength={INVOICE_LIMITS[key]} value={invoice[key]} onChange={(event) => setInvoice({ ...invoice, [key]: event.target.value })} />
                       </Field>
                     ))}
                   </div>
 
                   <InvoiceAdvanced value={invoice} onChange={setInvoice} />
-<div className="product-list">
+<div className="product-list" id="invoice-field-products">
                     <div className="product-heading">
                       <div>
                         <strong>Hàng hóa, dịch vụ</strong>
@@ -1004,7 +1015,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </div>
                     {invoice.products.map((product, index) => (
                       <div className="product-row" key={index}>
-                        <Field label="Mã sản phẩm" help="Tùy chọn; nếu API có AutoMapProduct thì cần đúng mã danh mục.">
+                        <Field validationField={`products[${index}].code`} label="Mã sản phẩm" help="Tùy chọn; nếu API có AutoMapProduct thì cần đúng mã danh mục.">
                           <input
                             value={product.code}
                             onChange={(e) =>
@@ -1012,7 +1023,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                        <Field label="Tên sản phẩm" required>
+                        <Field validationField={`products[${index}].name`} label="Tên sản phẩm" required>
                           <input
                             value={product.name}
                             onChange={(e) =>
@@ -1020,7 +1031,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                        <Field label="Đơn vị tính">
+                        <Field validationField={`products[${index}].unit`} label="Đơn vị tính">
                           <input
                             value={product.unit}
                             onChange={(e) =>
@@ -1028,7 +1039,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                             }
                           />
                         </Field>
-                        <Field label="Loại · Feature">
+                        <Field validationField={`products[${index}].feature`} label="Loại · Feature">
   <StyledSelect value={product.feature} onChange={(next) => updateProduct(index, "feature", next)}
     options={[{ value: "", label: "Tự suy theo Amount (kiểu cũ)" }, ...FEATURES.map(([value, label]) => ({ value, label: `${value} · ${label}` }))]} />
 </Field>
@@ -1053,7 +1064,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           />
                         </Field>
                         {invoiceMode === "multi" && (
-                          <Field label="VAT" required>
+                          <Field validationField={`products[${index}].vatRate`} label="VAT" required>
                             <StyledSelect value={product.vat}
                               onChange={(next) => updateProduct(index, "vat", next)}
                               options={VAT_RATES.map(([rate, label]) => ({ value: rate, label: `${rate} · ${label}` }))} />
@@ -1072,16 +1083,16 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         {invoiceMode === "multi" && <Field label="VATRate · Thuế suất dòng" required>
                           <span className="gross-inline-help"><span>Gross nhóm {product.vat === -3 ? "KHÁC" : VAT_RATES.find(([rate]) => rate === product.vat)?.[1].split(" · ")[0]}</span><GrossHelp rate={product.vat} /></span>
                         </Field>}
-                        {product.vat === -3 && <Field label="VATRateOther · Thuế suất khác" required>
+                        {product.vat === -3 && <Field validationField={`products[${index}].vatRateOther`} label="VATRateOther · Thuế suất khác" required>
   <input type="number" min="0" max="99.99" step="0.01" value={product.vatRateOther} onChange={(e) => updateProduct(index, "vatRateOther", e.target.value)} />
 </Field>}
-<Field label="Discount · Tỷ lệ CK (%)"><input type="number" max="100" step="any" value={product.discount} onChange={(e) => updateProduct(index, "discount", e.target.value)} /></Field>
+<Field validationField={`products[${index}].discount`} label="Discount · Tỷ lệ CK (%)"><input type="number" max="100" step="any" value={product.discount} onChange={(e) => updateProduct(index, "discount", e.target.value)} /></Field>
 {([["totalOverride", "Total · Trước thuế"], ["vatAmountOverride", "VATAmount · Tiền thuế"], ["amountOverride", "Amount · Sau thuế"]] as const).map(([key, label]) => (
-  <Field key={key} label={label} help="Để trống: tính gợi ý từ SL × ĐG − DiscountAmount; có thể nhập riêng. API không kiểm tra khớp phép tính này.">
+  <Field key={key} validationField={`products[${index}].${key}`} label={label} help="Để trống: tính gợi ý từ SL × ĐG − DiscountAmount; có thể nhập riêng. API không kiểm tra khớp phép tính này.">
     <input type="number" step="any" value={product[key]} placeholder="Tự tính; có thể nhập riêng" onChange={(e) => updateProduct(index, key, e.target.value)} />
   </Field>
 ))}
-                        <Field label="Extra · Thông tin bổ sung sản phẩm" help="Chuỗi hoặc JSON. Không gửi BusinessProdGroupCode thành thẻ XML; nếu cần chỉ lưu trong Extra theo quy ước riêng của đơn vị.">
+                        <Field validationField={`products[${index}].extra`} label="Extra · Thông tin bổ sung sản phẩm" help="Chuỗi hoặc JSON. Không gửi BusinessProdGroupCode thành thẻ XML; nếu cần chỉ lưu trong Extra theo quy ước riêng của đơn vị.">
                           <ExtraInput value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} />
                         </Field>
 {product.feature === "5" && invoice.specialInvoice !== "0" && <SpecialExtraFields type={invoice.specialInvoice} value={product.extra} onChange={(value) => updateProduct(index, "extra", value)} />}
@@ -1183,6 +1194,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     <p className="invoice-rule-note">Không gửi bộ Gross để Softdreams tự tổng hợp. Phép tính trên form là gợi ý; có thể nhập số tiền riêng theo mẫu. Discount (%) không tự thay DiscountAmount.</p>
                   </div>
                 </>
+                </InvoiceValidationContext.Provider>
               ) : template === "external-digest" ? (
                 <div className="form-grid" style={{ marginTop: 16 }}>
                   <Field label="Mã số thuế đơn vị" required>
@@ -1554,19 +1566,39 @@ export function ApiSandbox({ domain }: { domain: string }) {
   );
 }
 
+const FIELD_ISSUE_LABELS: Array<[string, string]> = [
+  ["VATRate · Hóa đơn", "vatRate"], ["VATRateOther · Thuế suất khác", "vatRateOther"],
+  ["Hình thức thanh toán", "payment"], ["Mã khách hàng · CusCode", "customerCode"],
+  ["Người mua · Buyer", "buyer"], ["Tên khách hàng · CusName", "customer"],
+  ["Mã số thuế · CusTaxCode", "tax"], ["Địa chỉ · CusAddress", "address"],
+  ["Số điện thoại · CusPhone", "phone"], ["Email nhận thông báo", "customerEmails"],
+  ["CCCD · CusIdentification", "identification"], ["Ngày phát sinh · ArisingDate", "date"],
+  ["Số phụ lục · ListAttachNum", "listAttachNum"], ["Ngày phụ lục · ListAttachDate", "listAttachDate"],
+  ["Mã địa điểm kinh doanh · LocationCode", "locationCode"], ["Tên địa điểm kinh doanh · LocationName", "locationName"],
+  ["Địa chỉ địa điểm · LocationAddress", "locationAddress"], ["Ghi chú · Extra", "extra"],
+  ["AmountInWords · Số tiền bằng chữ", "amountInWords"], ["Discount · Tỷ lệ", "discount"],
+  ["DiscountAmount · Tổng chiết khấu", "discountAmount"], ["Total · Trước thuế", "totalOverride"],
+  ["VATAmount · Tiền thuế", "vatAmountOverride"], ["Amount · Tổng thanh toán", "amountOverride"],
+];
+
 function Field({
   label,
   help,
   required = false,
+  validationField,
   children,
 }: {
   label: string;
   help?: string;
   required?: boolean;
+  validationField?: string;
   children: React.ReactNode;
 }) {
+  const validationIssues = useContext(InvoiceValidationContext);
+  const issueField = validationField ?? FIELD_ISSUE_LABELS.find(([prefix]) => label.startsWith(prefix))?.[1];
+  const messages = issueField ? validationIssues.get(issueField) ?? [] : [];
   return (
-    <label className="field">
+    <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined}>
       <span>
         {label}
         {required && (
@@ -1577,6 +1609,7 @@ function Field({
         {help && <Help>{help}</Help>}
       </span>
       {children}
+      {messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}
     </label>
   );
 }

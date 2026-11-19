@@ -621,3 +621,23 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .sandbox-shell[data-theme="dark"] .styled-select-popup { color: #d3dced; background: #111c2e; border-color: #334762; box-shadow: 0 14px 36px #0008; }
 .sandbox-shell[data-theme="dark"] .styled-select-item[data-highlighted] { color: #bfdbfe; background: #1b3455; }
 .sandbox-shell[data-theme="dark"] .styled-select-check { color: #60a5fa; }
+.form-panel { container-type: inline-size; }
+.invoice-summary > .invoice-rule-note { grid-column: 1 / -1; margin: 0; }
+.invoice-field-error-anchor { scroll-margin-block: 140px; }
+.field[data-invalid="true"] { scroll-margin-block: 140px; }
+.field[data-invalid="true"] > input,
+.field[data-invalid="true"] > textarea,
+.field[data-invalid="true"] .money-input-wrap input,
+.field[data-invalid="true"] .styled-select-trigger { border-color: #dc3545; box-shadow: 0 0 0 3px #dc35451c; }
+.field-validation-message { display: block; margin-top: 6px; color: #c92a3c; font-size: 11px; line-height: 1.45; }
+.invoice-form-issues li > button { width: 100%; padding: 2px 0; color: inherit; background: transparent; border: 0; text-align: left; font: inherit; line-height: 1.55; cursor: pointer; }
+.invoice-form-issues li > button:hover { text-decoration: underline; }
+.invoice-form-issues li > button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 3px; }
+.sandbox-shell[data-theme="dark"] .field-validation-message { color: #fda4af; }
+@container (max-width: 600px) {
+  .invoice-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 13px; }
+}
+@container (max-width: 390px) {
+  .invoice-summary { grid-template-columns: minmax(0, 1fr); }
+  .invoice-summary > .invoice-rule-note { grid-column: 1; }
+}
