@@ -38,9 +38,18 @@ export function invoiceIssues(data: InvoiceInput): InvoiceIssue[] {
     if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date)) add(key, "Ngày không hợp lệ.");
   }
   const pattern = data.pattern.trim().toUpperCase();
+  const isMtt = pattern[4] === "M";
   if (/^[1-5][A-Z]\d{2}/.test(pattern)) {
     const year = data.date ? data.date.slice(2, 4) : String(new Date().getFullYear()).slice(2);
     if (year !== pattern.slice(2, 4)) add("date", "Năm ArisingDate phải trùng năm trên Pattern; ngày trống dùng năm hiện tại.");
+  }
+  if (isMtt && data.taxAuthorityCode) {
+    const code = data.taxAuthorityCode.trim();
+    const match = code.match(/^M([1-5])-(\d{2})-(.+)-(\d{11})$/);
+    if (code.length !== 23) add("taxAuthorityCode", "TaxAuthorityCode của hóa đơn MTT phải đủ 23 ký tự.");
+    else if (!match || match[1] !== pattern[0] || match[2] !== pattern.slice(2, 4)) {
+      add("taxAuthorityCode", "TaxAuthorityCode phải khớp loại hóa đơn và năm trên Pattern; 11 ký tự cuối phải là số.");
+    }
   }
   const numeric = (value: string, field: string) => {
     if (value !== "" && (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value) || !Number.isFinite(Number(value)))) add(field, "Cần số hợp lệ, dùng dấu chấm thập phân.");
@@ -48,7 +57,10 @@ export function invoiceIssues(data: InvoiceInput): InvoiceIssue[] {
   for (const key of ["totalOverride", "vatAmountOverride", "amountOverride", "exchangeRate", "discount", "taxFreeDeductions"] as const) numeric(data[key], key);
   const vat = (rate: number, other: string, field: string) => {
     if (!VAT_RATES.some(([value]) => value === rate)) add(field, "Mã thuế suất không hợp lệ.");
-    if (rate === -3 && (!/^\d{1,2}(?:\.\d{1,2})?$/.test(other) || Number(other) > 99.99)) add(field + "Other", "VATRateOther bắt buộc từ 0–99.99, tối đa 2 số thập phân.");
+    const otherFormat = isMtt ? /^(?:\d{1,2}(?:\.\d{0,2})?|\.\d{1,2})$/ : /^\d{1,2}(?:\.\d{1,2})?$/;
+    if (rate === -3 && (!otherFormat.test(other) || Number(other) > 99.99)) add(field + "Other", isMtt
+      ? "VATRateOther MTT bắt buộc từ 0–99.99, tối đa 2 số thập phân (có thể nhập dạng .5)."
+      : "VATRateOther bắt buộc từ 0–99.99, tối đa 2 số thập phân.");
   };
   vat(data.vatRate, data.vatRateOther, "vatRate");
   if (data.includeGross) add("includeGross", "Không gửi bộ Gross; để Softdreams tự tính từ dòng.");

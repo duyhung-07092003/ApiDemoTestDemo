@@ -387,63 +387,77 @@ export function ApiSandbox({ domain }: { domain: string }) {
 
   function simulateResponse() {
     const isInvoiceResponse = template === "invoice";
+    const responseDate = (date: Date) => `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    const now = new Date();
+    const currentDate = responseDate(now);
+    const pattern = invoice.pattern.trim().toUpperCase();
+    const serial = invoice.serial.trim() || "SERIAL_SELECTED_BY_API";
+    const products = invoice.products.map((product, index) => {
+      const values = calculateProduct(product);
+      const feature = product.feature || (values.amount < 0 ? "3" : values.amount === 0 ? "4" : "1");
+      const isDiscount = feature === "3";
+      return {
+        No: index + 1,
+        ProdName: product.name,
+        ProdPrice: product.price,
+        Feature: Number(feature),
+        ProdQuantity: product.quantity,
+        ProdUnit: product.unit,
+        VATRate: product.vat,
+        ...(product.vat === -3 && product.vatRateOther !== "" ? { VATRateOther: Number(product.vatRateOther) } : {}),
+        Discount: product.discount,
+        VATAmount: isDiscount ? -Math.abs(values.vatAmount) : values.vatAmount,
+        DiscountAmount: product.discountAmount,
+        Amount: isDiscount ? -Math.abs(values.amount) : values.amount,
+        ProdType: 1,
+        IsSum: false,
+        ...(product.code ? { Code: product.code } : {}),
+        Total: isDiscount ? -Math.abs(values.total) : values.total,
+      };
+    });
     const responseData = isInvoiceResponse
       ? {
           Status: 2,
-          Message: "Ok (mô phỏng)",
+          Message: "Ok",
+          ErrorCode: 0,
           Data: {
-            Pattern: invoice.pattern.trim().toUpperCase(),
-            Serial: invoice.serial,
+            Pattern: pattern,
+            Serial: serial,
             Ikeys: [invoice.ikey],
             Invoices: [{
               InvoiceStatus: 0,
               Buyer: invoice.buyer,
               TaxAmount: invoiceTotals.vat,
-              PublishedBy: null,
               Type: 0,
-              Products: invoice.products.map((product, index) => {
-                const values = calculateProduct(product);
-                return {
-                  id: null,
-                  InvID: null,
-                  ProdID: null,
-                  No: index + 1,
-                  ProdName: product.name,
-                  ProdPrice: product.price,
-                  Feature: product.feature === "" ? null : Number(product.feature),
-                  ProdQuantity: product.quantity,
-                  ProdUnit: product.unit,
-                  VATRate: product.vat,
-                  VATRateOther: product.vat === -3 ? product.vatRateOther : null,
-                  Discount: product.discount,
-                  VATAmount: values.vatAmount,
-                  DiscountAmount: product.discountAmount,
-                  Amount: values.amount,
-                  Code: product.code,
-                  Total: values.total,
-                  Extra: product.extra || null,
-                };
-              }),
-              Pattern: invoice.pattern.trim().toUpperCase(),
-              Serial: invoice.serial,
+              Products: products,
+              Pattern: pattern,
+              Serial: serial,
               No: "0",
               Ikey: invoice.ikey,
-              ArisingDate: invoice.date ? invoice.date.split("-").reverse().join("/") : "",
-              IssueDate: null,
+              ArisingDate: invoice.date ? invoice.date.split("-").reverse().join("/") : currentDate,
+              IssueDate: currentDate,
               CustomerName: invoice.customer,
               CustomerAddress: invoice.address,
-              CustomerCode: invoice.customerCode,
-              CustomerTaxCode: invoice.tax,
+              CustomerCode: invoice.customerCode.trim() || invoice.tax.replace(/\s/g, ""),
+              CustomerTaxCode: invoice.tax.replace(/\s/g, ""),
               Total: invoiceTotals.total,
               Amount: invoiceTotals.amount,
-              LookupCode: "SAMPLE_LOOKUP_CODE",
-              LinkView: null,
-              ModifiedDate: null,
-              CusIdentification: invoice.identification,
-              PassportNo: invoice.passportNo,
+              LookupCode: invoice.fkey || "FKEY_GENERATED_BY_API",
+              ModifiedDate: `${currentDate} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`,
+              IsSentTCTSummary: false,
+              TCTCheckStatus: "Chưa gửi thuế",
+              ...(invoice.taxAuthorityCode ? { TaxAuthorityCode: invoice.taxAuthorityCode } : {}),
+              ...(invoice.identification ? { CusIdentification: invoice.identification } : {}),
+              ...(invoice.budgetaryRelationshipCode ? { BudgetaryRelationshipCode: invoice.budgetaryRelationshipCode } : {}),
+              ...(invoice.passportNo ? { PassportNo: invoice.passportNo } : {}),
+              ...(invoice.storeCode ? { StoreCode: invoice.storeCode } : {}),
+              ...(invoice.storeName ? { StoreName: invoice.storeName } : {}),
+              ...(invoice.provinceCode ? { ProvinceCode: invoice.provinceCode } : {}),
+              ...(invoice.provinceName ? { ProvinceName: invoice.provinceName } : {}),
+              ...(invoice.communeCode ? { CommuneCode: invoice.communeCode } : {}),
+              ...(invoice.communeName ? { CommuneName: invoice.communeName } : {}),
             }],
           },
-          ErrorCode: 0,
         }
       : {
           success: true,
@@ -765,9 +779,11 @@ export function ApiSandbox({ domain }: { domain: string }) {
               {isInvoice ? (
                 <InvoiceValidationContext.Provider value={invoiceIssuesByField}>
                 <>
-                  <InvoiceOptions value={invoice} onChange={setInvoice} />
+                  <InvoiceOptions value={invoice} onChange={setInvoice} issues={formIssues} />
 {formIssues.length > 0 && <details className="invoice-form-issues" open><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><button type="button" onClick={() => {
   const field = document.getElementById(`invoice-field-${encodeURIComponent(issue.field)}`);
+  let section = field?.closest("details");
+  while (section) { section.open = true; section = section.parentElement?.closest("details") ?? null; }
   field?.scrollIntoView({ behavior: "smooth", block: "center" });
   field?.querySelector<HTMLElement>("input, textarea, button, [tabindex]")?.focus({ preventScroll: true });
 }}><code>{issue.field}</code>: {issue.message}</button></li>)}</ul></details>}
@@ -1052,7 +1068,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     ))}
                   </div>
 
-                  <InvoiceAdvanced value={invoice} onChange={setInvoice} />
+                  <InvoiceAdvanced value={invoice} onChange={setInvoice} issues={formIssues} />
 <div className="product-list" id="invoice-field-products">
                     <div className="product-heading">
                       <div>

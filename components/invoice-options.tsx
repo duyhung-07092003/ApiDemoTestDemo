@@ -3,32 +3,40 @@
 import type { InvoiceInput } from "@/lib/softdreams/invoice";
 import { StyledSelect } from "./styled-select";
 
-export function InvoiceOptions({ value, onChange }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void }) {
+type InvoiceIssue = { field: string; message: string };
+const issueMessages = (issues: InvoiceIssue[], field: string) => issues.filter((issue) => issue.field === field).map((issue) => issue.message);
+const issueId = (field: string) => `invoice-field-${encodeURIComponent(field)}`;
+function FieldIssues({ messages }: { messages: string[] }) { return <>{messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}</>; }
+
+export function InvoiceOptions({ value, onChange, issues = [] }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void; issues?: InvoiceIssue[] }) {
   const mtt = value.pattern.trim().toUpperCase()[4] === "M";
+  const profileIssues = issueMessages(issues, "profile");
+  const specialIssues = issueMessages(issues, "specialInvoice");
+  const convertIssues = issueMessages(issues, "convert");
   return <section className="invoice-options">
     <h3>Loại mẫu & tùy chọn import</h3>
     <p>Các lựa chọn này dùng kiểm tra dữ liệu tại form; không thay đổi cấu hình dải trên Softdreams. Pattern/Serial phải trỏ đúng dải thật.</p>
     <div className="form-grid">
-      <label className="field"><span>Bộ quy tắc của mẫu</span><StyledSelect value={value.profile} options={[{ value: "tt78", label: "TT78 · GTGT / bán hàng (C78InvoiceVAT)" }, { value: "receipt", label: "Biên lai · Receipt" }]} onChange={(profile) => {
+      <label id={issueId("profile")} className="field" data-invalid={profileIssues.length > 0 || undefined}><span>Bộ quy tắc của mẫu</span><StyledSelect value={value.profile} options={[{ value: "tt78", label: "TT78 · GTGT / bán hàng (C78InvoiceVAT)" }, { value: "receipt", label: "Biên lai · Receipt" }]} onChange={(profile) => {
         const receipt = profile === "receipt";
         onChange({ ...value, profile, ...(receipt ? { specialInvoice: "0", vatRate: -1, vatRateOther: "", currency: "VND", vatAmountOverride: "",
           products: value.products.map((p) => ({ ...p, vat: -1, vatRateOther: "", vatAmountOverride: "", feature: p.feature === "4" ? "4" : "1" })) } : {}) });
-      }} /></label>
-      <label className="field"><span>Hàng hóa đặc trưng của dải</span><StyledSelect value={value.specialInvoice} disabled={value.profile === "receipt"} onChange={(specialInvoice) => onChange({ ...value, specialInvoice })} options={[
+      }} /><FieldIssues messages={profileIssues} /></label>
+      <label id={issueId("specialInvoice")} className="field" data-invalid={specialIssues.length > 0 || undefined}><span>Hàng hóa đặc trưng của dải</span><StyledSelect value={value.specialInvoice} disabled={value.profile === "receipt"} onChange={(specialInvoice) => onChange({ ...value, specialInvoice })} options={[
         { value: "0", label: "Thông thường" }, { value: "1", label: "1 · Mua bán xe" },
         { value: "2", label: "2 · Dịch vụ vận chuyển" }, { value: "3", label: "3 · Vận chuyển trên TMĐT" },
-      ]} /></label>
-      <label className="field"><span>Convert · Bảng mã dữ liệu</span><StyledSelect value={value.convert} onChange={(next) => onChange({ ...value, convert: Number(next) })} options={[
+      ]} /><FieldIssues messages={specialIssues} /></label>
+      <label id={issueId("convert")} className="field" data-invalid={convertIssues.length > 0 || undefined}><span>Convert · Bảng mã dữ liệu</span><StyledSelect value={value.convert} onChange={(next) => onChange({ ...value, convert: Number(next) })} options={[
         { value: 0, label: "0 · Unicode (mặc định)" }, { value: 1, label: "1 · TCVN3 → Unicode trên API" },
-      ]} /></label>
+      ]} /><FieldIssues messages={convertIssues} /></label>
       <label className="invoice-option-check"><input type="checkbox" checked={value.updateCus} onChange={(e) => onChange({ ...value, updateCus: e.target.checked })} />updateCus · Tạo/cập nhật khách hàng theo CusCode</label>
     </div>
-    <p>{mtt ? "Pattern máy tính tiền (MTT): kiểm tra VATRateOther và mã CQT nếu gửi." : "Mẫu thường: không gửi TaxAuthorityCode."} Thuế 8%, danh mục tỉnh/xã, mẫu miễn kiểm tra và cleaner chỉ xác minh được trên API.</p>
+    <p>{mtt ? "Pattern MTT: form kiểm tra định dạng mã CQT; API xác nhận mã đã đăng ký cho dải và chưa dùng." : "Mẫu thường: không gửi TaxAuthorityCode."} Thuế 8%, danh mục tỉnh/xã, cấu hình miễn kiểm tra và cleaner chỉ xác minh được trên API.</p>
     <p>Form này hỗ trợ TT78 và biên lai. Mẫu cũ, chứng từ TNCN và phiếu xuất kho có cấu trúc riêng, không chọn thay bằng TT78.</p>
   </section>;
 }
 
-export function InvoiceAdvanced({ value, onChange }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void }) {
+export function InvoiceAdvanced({ value, onChange, issues = [] }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void; issues?: InvoiceIssue[] }) {
   return <details className="invoice-options">
     <summary>Trường nâng cao & phí/lệ phí</summary>
     <div className="form-grid">
@@ -40,8 +48,8 @@ export function InvoiceAdvanced({ value, onChange }: { value: InvoiceInput; onCh
         ["discount", "Discount · Tỷ lệ chiết khấu chung"], ["taxFreeDeductions", "TaxFreeDeductions · Khoản giảm trừ"],
       ] as const).map(([key, label]) => <label className="field" key={key}><span>{label}</span>
         <input value={value[key]} onChange={(e) => onChange({ ...value, [key]: e.target.value })} /></label>)}
-      {value.pattern.trim().toUpperCase()[4] === "M" && <label className="field"><span>TaxAuthorityCode · Mã CQT MTT (tùy chọn)</span>
-        <input value={value.taxAuthorityCode} onChange={(e) => onChange({ ...value, taxAuthorityCode: e.target.value })} /></label>}
+      {value.pattern.trim().toUpperCase()[4] === "M" && <label id={issueId("taxAuthorityCode")} className="field" data-invalid={issueMessages(issues, "taxAuthorityCode").length > 0 || undefined}><span>TaxAuthorityCode · Mã CQT MTT (tùy chọn)</span>
+        <input value={value.taxAuthorityCode} onChange={(e) => onChange({ ...value, taxAuthorityCode: e.target.value })} /><FieldIssues messages={issueMessages(issues, "taxAuthorityCode")} /></label>}
     </div>
     <h4>InvoiceFees · Phí/lệ phí (tùy chọn)</h4>
     {value.fees.map((fee, i) => <div className="form-grid invoice-fee-row" key={i}>
