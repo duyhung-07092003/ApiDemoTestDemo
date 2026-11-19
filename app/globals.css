@@ -761,6 +761,10 @@ button, input, select, textarea { font-family: inherit; }
 .sandbox-shell .field input[type="date"]:focus { border-color: #6086d6; box-shadow: 0 0 0 3px #6086d624; }
 .sandbox-shell[data-theme="dark"] .field input[type="date"] { background-color: #0e1929; }
 .sandbox-shell[data-theme="dark"] .field input[type="date"]::-webkit-calendar-picker-indicator { background-color: #1c3454; }
+.field > span:first-child { height: 40px; min-height: 40px; align-items: flex-start; white-space: normal; line-height: 18px; }
+.field-label-text { display: -webkit-box; flex: 1 1 auto; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 18px; }
+.field > span:first-child .required-star, .field > span:first-child .help-tip { flex: 0 0 auto; }
+.field > span:first-child .help-tip { margin-top: 1px; }
 .extra-key-fields > p { grid-column: 1 / -1; margin: 0 0 10px; color: #64748b; font-size: 13px; line-height: 1.5; }
 .invoice-extra-field { grid-column: 1 / -1; padding: 14px; border: 1px solid #dce4f1; border-radius: 12px; background: #f8faff; }
 .invoice-extra-field > strong { display: block; margin-bottom: 9px; color: #334155; font-size: 14px; }
