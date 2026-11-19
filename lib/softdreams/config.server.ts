@@ -8,7 +8,7 @@ function required(name: string): string {
 }
 
 export function getSoftdreamsDomain(): string {
-  const value = required("SOFTDREAMS_BASE_URL");
+  const value = process.env.SOFTDREAMS_BASE_URL || (process.env.NODE_ENV === "production" ? "https://test7802.softdreams.vn" : required("SOFTDREAMS_BASE_URL"));
   let url: URL;
   try { url = new URL(value); } catch { throw new Error("SOFTDREAMS_BASE_URL phải là domain HTTP/HTTPS hợp lệ."); }
   if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
