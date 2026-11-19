@@ -7,8 +7,13 @@ type Result = { status: number; statusText: string; duration: number; size: numb
 
 const jsonTokenPattern = /("(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b)/g
 
-export function HighlightedJson({ text, highlightRanges = [] }: { text: string; highlightRanges?: Array<{ start: number; end: number; className?: string }> }) {
+export function HighlightedJson({ text, highlightRanges = [], displayNewlinesRange }: { text: string; highlightRanges?: Array<{ start: number; end: number; className?: string }>; displayNewlinesRange?: { start: number; end: number } }) {
   let offset = 0;
+  const displayText = (start: number, end: number) => {
+    const value = text.slice(start, end);
+    if (!displayNewlinesRange || start < displayNewlinesRange.start || end > displayNewlinesRange.end) return value;
+    return value.replace(/(?<!\\)\\n/g, "\n");
+  };
   return <>{text.split(jsonTokenPattern).map((token, index) => {
     if (!token) return null
     const tokenStart = offset;
@@ -23,18 +28,18 @@ export function HighlightedJson({ text, highlightRanges = [] }: { text: string; 
             ? 'json-literal'
             : undefined
     const ranges = highlightRanges.filter((range) => range.start < tokenStart + token.length && range.end > tokenStart).sort((a, b) => a.start - b.start);
-    if (ranges.length === 0) return className ? <span className={className} key={index}>{token}</span> : token;
+    if (ranges.length === 0) return className ? <span className={className} key={index}>{displayText(tokenStart, tokenStart + token.length)}</span> : displayText(tokenStart, tokenStart + token.length);
     const pieces: ReactNode[] = [];
     let cursor = tokenStart;
     for (const range of ranges) {
       const start = Math.max(range.start, tokenStart);
       const end = Math.min(range.end, tokenStart + token.length);
-      if (start > cursor) pieces.push(className ? <span className={className} key={`before-${cursor}`}>{text.slice(cursor, start)}</span> : text.slice(cursor, start));
-      if (end > Math.max(cursor, start)) pieces.push(<span className={range.className ?? "json-focus"} key={`focus-${start}`}>{text.slice(Math.max(cursor, start), end)}</span>);
+      if (start > cursor) pieces.push(className ? <span className={className} key={`before-${cursor}`}>{displayText(cursor, start)}</span> : displayText(cursor, start));
+      if (end > Math.max(cursor, start)) pieces.push(<span className={range.className ?? "json-focus"} key={`focus-${start}`}>{displayText(Math.max(cursor, start), end)}</span>);
       cursor = Math.max(cursor, end);
     }
     const tokenEnd = tokenStart + token.length;
-    if (cursor < tokenEnd) pieces.push(className ? <span className={className} key={`after-${cursor}`}>{text.slice(cursor, tokenEnd)}</span> : text.slice(cursor, tokenEnd));
+    if (cursor < tokenEnd) pieces.push(className ? <span className={className} key={`after-${cursor}`}>{displayText(cursor, tokenEnd)}</span> : displayText(cursor, tokenEnd));
     return <Fragment key={index}>{pieces}</Fragment>;
   })}</>
 }

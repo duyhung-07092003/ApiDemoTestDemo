@@ -156,6 +156,13 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
   return matches;
 }
 
+function findRawXmlValueRange(requestText: string, xmlText: string) {
+  const bodyStart = requestText.indexOf("\n\n") + 2;
+  const serializedXml = JSON.stringify(xmlText);
+  const start = requestText.indexOf(serializedXml, bodyStart);
+  return bodyStart >= 2 && start >= 0 ? { start, end: start + serializedXml.length } : undefined;
+}
+
 export function ApiSandbox({ domain }: { domain: string }) {
   const [workspaceView, setWorkspaceView] = useState<"request" | "xml">("request");
   const [template, setTemplate] = useState<TemplateId>("invoice");
@@ -1601,7 +1608,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   <pre className="request-preview">
                     {activeTab === "xml"
                       ? <HighlightedXml text={xmlBody} focusedTag={focusedXml?.tag} productIndex={focusedXml?.productIndex} />
-                      : <HighlightedJson text={requestPreview} highlightRanges={isInvoice && !prettyPreview ? findRawXmlHighlightRanges(requestPreview, xmlBody, focusedXml) : []} />}
+                      : <HighlightedJson text={requestPreview} highlightRanges={isInvoice && !prettyPreview ? findRawXmlHighlightRanges(requestPreview, xmlBody, focusedXml) : []} displayNewlinesRange={isInvoice && !prettyPreview ? findRawXmlValueRange(requestPreview, xmlBody) : undefined} />}
                   </pre>
                 )}
                 <div className="response-footer">
