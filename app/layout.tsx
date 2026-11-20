@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import './sandbox-theme.css'
+import './import-form.css'
 
 export const metadata: Metadata = {
   title: 'RequestLab — API Request Sandbox',

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const invoice = invoices[0];
     headers = new Headers({ "Content-Type": "application/json", Accept: "application/json" });
     headers.set("Authentication", createAuthen(SOFTDREAMS_APIS.invoice.method));
-    payload = { XmlData: buildInvoiceBatch(invoices), Pattern: invoice.pattern, Serial: invoice.serial, Convert: invoice.convert };
+    payload = { XmlData: buildInvoiceBatch(invoices), ...(invoice.pattern ? { Pattern: invoice.pattern } : {}), ...(invoice.serial.trim() ? { Serial: invoice.serial } : {}), Convert: invoice.convert };
     if (Buffer.byteLength(JSON.stringify(payload)) > MAX_BYTES) throw new Error("Gói XML vượt giới hạn 2 MB. Hãy giảm số hóa đơn hoặc dòng hàng.");
   } catch (error) {
     return Response.json({ message: error instanceof Error ? error.message : "Request không hợp lệ." }, { status: 400, headers: { "Cache-Control": "no-store" } });

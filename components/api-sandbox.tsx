@@ -32,6 +32,9 @@ import { invoiceIssues, INVOICE_LIMITS } from "@/lib/softdreams/validate";
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
 import { buildInvoiceBatch, validateInvoiceBatch, MAX_INVOICES_PER_REQUEST, SHARED_INVOICE_FIELDS } from "@/lib/softdreams/invoice-batch";
 import type { InvoiceInput } from "@/lib/softdreams/invoice";
+import { ImportInvoiceForm } from "./import-invoice-form";
+import { InvoiceDocumentPreview } from "./invoice-document-preview";
+import { companyPreview, type CompanySimulation } from "@/lib/softdreams/company-preview";
 
 type TemplateId =
   | "invoice"
@@ -253,17 +256,20 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [result, setResult] = useState<Result>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"request" | "xml" | "response">(
+  const [activeTab, setActiveTab] = useState<"request" | "xml" | "response" | "invoice-preview">(
     "request",
   );
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showConfig, setShowConfig] = useState(false);
   const [prettyPreview, setPrettyPreview] = useState(false);
-  const [invoiceModes, setInvoiceModes] = useState<Array<"single" | "multi">>(["multi"]);
-  const invoiceMode = invoiceModes[selectedInvoice] ?? "multi";
+  const [invoiceModes, setInvoiceModes] = useState<Array<"single" | "multi">>(["single"]);
+  const invoiceMode = invoiceModes[selectedInvoice] ?? "single";
+  const [companySimulation, setCompanySimulation] = useState<CompanySimulation>({ notValidate: false, skipVat8: false, from: "", to: "" });
+  const simulatedCompanyReport = useMemo(() => companyPreview(invoice, companySimulation), [invoice, companySimulation]);
   function setInvoiceMode(mode: "single" | "multi") { setInvoiceModes((current) => current.map((value, index) => index === selectedInvoice ? mode : value)); }
   const [focusedXml, setFocusedXml] = useState<XmlSelection | null>(null);
+  const [explanationTag, setExplanationTag] = useState<string | null>(null);
 
   const xmlBody = useMemo(
     () => template === "invoice" ? buildInvoiceBatch(invoices) : buildInvoice(invoice),
@@ -271,7 +277,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   );
   const body = useMemo(() => {
     if (template === "invoice")
-      return JSON.stringify({ XmlData: xmlBody, Pattern: invoice.pattern.trim().toUpperCase(), Serial: invoice.serial, Convert: invoice.convert }, null, 2);
+      return JSON.stringify({ XmlData: xmlBody, ...(invoice.pattern.trim() ? { Pattern: invoice.pattern.trim().toUpperCase() } : {}), ...(invoice.serial.trim() ? { Serial: invoice.serial } : {}), Convert: invoice.convert }, null, 2);
     if (template === "adjust-invoice")
       return JSON.stringify(
         {
@@ -329,7 +335,8 @@ export function ApiSandbox({ domain }: { domain: string }) {
   }, [formIssues]);
   function clearForm() {
     setInvoices([createEmptyInvoice()]);
-    setInvoiceModes(["multi"]);
+    setInvoiceModes(["single"]);
+    setCompanySimulation({ notValidate: false, skipVat8: false, from: "", to: "" });
     setSelectedInvoice(0);
     setFocusedXml(null);
     setAdjustment({ originalIkey: "", reason: "" });
@@ -354,7 +361,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
     // Reference and tax authority codes identify the original invoice and cannot be copied.
     if (copy) { next.fkey = ""; next.taxAuthorityCode = ""; }
     setInvoices((current) => [...current, next]);
-    setInvoiceModes((current) => [...current, copy ? invoiceMode : "multi"]);
+    setInvoiceModes((current) => [...current, copy ? invoiceMode : "single"]);
     selectInvoice(invoices.length);
   }
   function removeInvoice() {
@@ -787,10 +794,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
           <section className="template-section">
             <div className="section-top">
               <div>
-                <h2>Sandbox tích hợp API</h2>
+                <h2>{template === "invoice" ? `API importInvoice — ${invoice.profile === "receipt" ? "Biên lai" : invoiceMode === "single" ? "Mẫu 1 · Hóa đơn GTGT một thuế suất" : "Hóa đơn nhiều thuế suất"}` : "Sandbox tích hợp API"}</h2>
                 <p>
-                  Chọn loại request, điền thông tin và gửi thử trực tiếp từ
-                  trình duyệt — không cần cài đặt thêm.
+                  {template === "invoice" ? "Bản nháp, chưa ký số, chưa có số hóa đơn theo luồng thông thường. Tài liệu API: MaxBlockInv mặc định 5000, tùy cấu hình server; công cụ giới hạn 50 hóa đơn/gói." : "Chọn loại request, điền thông tin và gửi thử trực tiếp từ trình duyệt."}
                 </p>
               </div>
               <div className="template-top-actions">
@@ -898,7 +904,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   <div>
                     <h2>
                       {template === "invoice"
-                        ? "Thông tin hóa đơn"
+                        ? "Thông tin đầu vào"
                         : template === "adjust-invoice"
                           ? "Thông tin điều chỉnh hóa đơn"
                           : template === "external-digest"
@@ -907,7 +913,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </h2>
                     <p>
                       {template === "invoice"
-                        ? "Điền thông tin để tự động tạo request body XML."
+                        ? "Nhập hóa đơn bên trái; bên phải cập nhật request và bản xem trước. Bấm ? cạnh mỗi ô để đọc giải thích."
                         : template === "adjust-invoice"
                           ? "Thông tin hóa đơn gốc, lý do và hóa đơn điều chỉnh."
                           : template === "external-digest"
@@ -921,7 +927,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     <button
                       className="subtle-button"
                       disabled={loading}
-                      onClick={() => { setInvoice({ ...structuredClone(initialInvoice), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }); setInvoiceMode("multi"); }}
+                      onClick={() => { setInvoice({ ...structuredClone(initialInvoice), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }); setInvoiceMode("single"); }}
                     >
                       <WandSparkles size={14} /> Điền mẫu
                     </button>
@@ -940,15 +946,15 @@ export function ApiSandbox({ domain }: { domain: string }) {
               {isInvoice ? (
                 <InvoiceValidationContext.Provider value={invoiceIssuesByField}>
                 <>
-                  <InvoiceOptions value={invoice} onChange={setInvoice} issues={formIssues} />
+                  {template !== "invoice" && <InvoiceOptions value={invoice} onChange={setInvoice} issues={formIssues} />}
                   {template === "invoice" && <>
                     <section className="invoice-batch-config" aria-label="Dải hóa đơn dùng chung">
-                      <h3>Dải hóa đơn · dùng chung cho cả gói</h3>
+                      <h3>Tham số request · dùng chung cho cả gói</h3>
                       <div className="form-grid">
                         <Field validationField="pattern" label="Pattern · Ký hiệu hóa đơn" xmlTag={null}><input value={invoice.pattern} onChange={(event) => setInvoice({ ...invoice, pattern: event.target.value })} placeholder="1C26TTR" /></Field>
                         <Field validationField="serial" label="Serial · Ký hiệu mẫu số" xmlTag={null}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Có thể để trống" /></Field>
                       </div>
-                      <p>Pattern, Serial, Convert, bộ quy tắc và loại hàng hóa đặc trưng áp dụng cho tất cả hóa đơn trong gói.</p>
+                      <p>Pattern/Serial cần có nếu đơn vị dùng nhiều mẫu/ký hiệu; để trống thì không đưa vào request. Convert và cấu hình mẫu áp dụng chung cho cả gói. Dấu * là trường bắt buộc.</p>
                     </section>
                     <section className="invoice-batch-manager" aria-label="Danh sách hóa đơn trong gói">
                       <div className="invoice-batch-heading"><div><h3>Gói hóa đơn <span>{invoices.length}/{MAX_INVOICES_PER_REQUEST}</span></h3><p>Chọn một hóa đơn để nhập; dữ liệu được giữ khi chuyển hóa đơn.</p></div>
@@ -972,7 +978,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   field?.scrollIntoView({ behavior: "smooth", block: "center" });
   field?.querySelector<HTMLElement>("input, textarea, button, [tabindex]")?.focus({ preventScroll: true });
 }}><code>{issue.field}</code>: {issue.message}</button></li>)}</ul></details>}
-<section
+{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} mode={invoiceMode} onModeChange={setInvoiceMode} simulation={companySimulation} onSimulationChange={setCompanySimulation} explanationTag={explanationTag} onCloseExplanation={() => setExplanationTag(null)} /> : <><section
                     className="tax-mode-section"
                     aria-label="Thiết lập mẫu thuế"
                     style={{ marginTop: 14 }}
@@ -1053,7 +1059,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         </Field>
                       </>
                     )}
-                    {template !== "invoice" && <><Field validationField="pattern"
+                    <Field validationField="pattern"
                       label="Pattern · Ký hiệu hóa đơn"
                       help="Tự trim và viết hoa. Bỏ cả Pattern/Serial: API chọn dải khả dụng năm hiện tại; truyền một trường: API tìm theo trường đó."
                     >
@@ -1084,7 +1090,6 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="1"
                       />
                     </Field>
-                    </>}
                     <Field validationField="ikey"
                       label="Ikey · Khóa tích hợp"
                       required
@@ -1456,6 +1461,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </Field>
                     <p className="invoice-rule-note">Không gửi bộ Gross để Softdreams tự tổng hợp. Phép tính trên form là gợi ý; có thể nhập số tiền riêng theo mẫu. Discount (%) không tự thay DiscountAmount.</p>
                   </div>
+                  </>}
                 </>
                 </InvoiceValidationContext.Provider>
               ) : template === "external-digest" ? (
@@ -1683,13 +1689,16 @@ export function ApiSandbox({ domain }: { domain: string }) {
               )}
 
               {/* Request body preview */}
-              <section className="response-card">
+              <section className="response-card" onClick={(event) => {
+                const tag = (event.target as Element).closest(".xml-tag, .raw-xml-tag")?.textContent?.match(/^<\/?(ArisingDate|Total|VATAmount|Amount|VATRate|AmountInWords)>$/)?.[1];
+                if (tag) setExplanationTag(tag);
+              }}>
                 <div className="response-top">
                   <div className="card-title">
                     <span className="step-number">03</span>
                     <div>
-                      <h2>Request body</h2>
-                      <p>Preview request được tạo tự động từ biểu mẫu</p>
+                      <h2>Request mẫu (chỉ xem)</h2>
+                      <p>Request đầy đủ, XmlData và hóa đơn xem trước được tạo tự động từ biểu mẫu</p>
                     </div>
                   </div>
                 </div>
@@ -1703,7 +1712,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     aria-selected={activeTab === "request"}
                     onClick={() => setActiveTab("request")}
                   >
-                    Request
+                    Request đầy đủ
                   </button>
                   {isInvoice && (
                     <button
@@ -1714,13 +1723,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       {template === "invoice" ? "XmlData" : "XML"}
                     </button>
                   )}
+                  {template === "invoice" && <button role="tab" aria-selected={activeTab === "invoice-preview"} onClick={() => setActiveTab("invoice-preview")}>Hóa đơn xem trước</button>}
                   <div className="result-spacer" />
                   {isInvoice && activeTab === "request" && (
                     <button aria-pressed={prettyPreview} onClick={() => setPrettyPreview(!prettyPreview)}>
                       {prettyPreview ? "Xem JSON gốc" : "Xem dễ đọc"}
                     </button>
                   )}
-                  <button
+                  {activeTab !== "invoice-preview" && <button
                     className="copy-button"
                     onClick={async () => {
                       await navigator.clipboard.writeText(
@@ -1732,9 +1742,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   >
                     {copied ? <Check size={14} /> : <Copy size={14} />}
                     {copied ? "Đã sao chép" : "Sao chép"}
-                  </button>
+                  </button>}
                 </div>
-                {activeTab === "request" && isInvoice && prettyPreview ? (
+                {template === "invoice" && <div className="request-validation-summary">
+                  <div className={`request-local-status ${batchIssues.some((issues) => issues.length) ? "needs-attention" : "ready"}`}><strong>{batchIssues.some((issues) => issues.length) ? `Cần sửa dữ liệu: ${batchIssues.filter((issues) => issues.length).length}/${invoices.length} hóa đơn có lỗi` : "Chưa phát hiện lỗi trong bộ quy tắc tại form"}</strong><p>Chưa gửi API. Chưa xác minh dải, trạng thái Ikey đã tồn tại, danh mục, cấu hình công ty hoặc request gửi đồng thời. Chỉ phản hồi thật mới xác nhận kết quả.</p></div>
+                  {(companySimulation.notValidate || companySimulation.skipVat8 || companySimulation.from || companySimulation.to || simulatedCompanyReport.pendingVat8) && <details className="request-company-simulation" open><summary>Kết quả giả lập công ty · hóa đơn {selectedInvoice + 1}</summary><p>Bỏ qua {simulatedCompanyReport.skipped} lỗi trường; còn {simulatedCompanyReport.issues.length} lỗi trong phạm vi mô phỏng. Gửi thật vẫn kiểm tra dữ liệu đầy đủ, không gửi các công tắc này.</p>{simulatedCompanyReport.pendingVat8 && <p>Chưa đối chiếu thời hạn thuế 8%: cần nhập khoảng CheckVat8 giả lập.</p>}<ul>{simulatedCompanyReport.issues.map((issue, index) => <li key={index}><code>{issue.field}</code>: {issue.message}</li>)}</ul></details>}
+                  <p>XmlData là chuỗi XML trong body JSON. Header Authentication được sinh trên server. Bấm tên thẻ Total, VATAmount, Amount, VATRate, AmountInWords hoặc ArisingDate trong XML để đọc cách nhập ở bên trái. Hóa đơn xem trước chỉ minh họa bố cục; mẫu thật phụ thuộc dải đăng ký.</p>
+                </div>}
+                {activeTab === "invoice-preview" && template === "invoice" ? <InvoiceDocumentPreview value={invoice} index={selectedInvoice} /> : activeTab === "request" && isInvoice && prettyPreview ? (
                   <div className="formatted-request">
                     <pre className="request-preview request-metadata">
                       {requestPreview.split("\n\n")[0] + "\n\n"}
