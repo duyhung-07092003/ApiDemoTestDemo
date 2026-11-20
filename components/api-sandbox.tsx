@@ -978,13 +978,12 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   {template !== "invoice" && <InvoiceOptions value={invoice} onChange={setInvoice} issues={formIssues} />}
                   {template === "invoice" && <>
                     <section className="invoice-batch-config" aria-label="Dải hóa đơn dùng chung">
-                      <h3>Tham số request · dùng chung cho cả gói</h3>
-                      <label className="import-inline-check"><input type="checkbox" checked={serialVisible} aria-expanded={serialVisible} aria-controls="invoice-field-serial" onChange={(event) => { setShowSerial(event.target.checked); if (!event.target.checked) setInvoice({ ...invoice, serial: "" }); }} /><span>Điền Serial <small>Tùy chọn · bỏ chọn để không gửi Serial</small></span></label>
+                      <div className="invoice-parameters-heading"><h3>Tham số request</h3>
+                      <label className="import-inline-check"><input type="checkbox" checked={serialVisible} aria-expanded={serialVisible} aria-controls="invoice-field-serial" onChange={(event) => { setShowSerial(event.target.checked); if (!event.target.checked) setInvoice({ ...invoice, serial: "" }); }} /><span>Điền Serial</span></label></div>
                       <div className="form-grid" data-serial-visible={serialVisible}>
-                        <Field validationField="pattern" label="Pattern · Ký hiệu hóa đơn" xmlTag={null} help={IMPORT_FIELD_HELP.Pattern.rule}><input value={invoice.pattern} onChange={(event) => setInvoice({ ...invoice, pattern: event.target.value })} placeholder="vd: 1C26TAA" /></Field>
-                        {serialVisible && <Field validationField="serial" label="Serial · Ký hiệu mẫu số (tùy chọn)" xmlTag={null} help={IMPORT_FIELD_HELP.Serial.rule}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Có thể để trống · ví dụ: 1" /></Field>}
+                        <Field validationField="pattern" label="Pattern · Ký hiệu hóa đơn" xmlTag={null} help={IMPORT_FIELD_HELP.Pattern.rule}><input value={invoice.pattern} onChange={(event) => setInvoice({ ...invoice, pattern: event.target.value })} placeholder="Ví dụ: 1C26TAA" /></Field>
+                        {serialVisible && <Field validationField="serial" label="Serial · Ký hiệu mẫu số" xmlTag={null} help={IMPORT_FIELD_HELP.Serial.rule}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Ví dụ: 1" /></Field>}
                       </div>
-                      <p>Cần có nếu đơn vị dùng nhiều mẫu/ký hiệu. Để trống thì không đưa vào request. Các tham số này áp dụng chung cho cả gói. Dấu * là trường bắt buộc.</p>
                     </section>
                     <section className="invoice-batch-manager" aria-label="Danh sách hóa đơn trong gói">
                       <div className="invoice-batch-heading"><div><h3>Gói hóa đơn <span>{invoices.length}/{MAX_INVOICES_PER_REQUEST}</span></h3><p>Chọn một hóa đơn để nhập; dữ liệu được giữ khi chuyển hóa đơn.</p></div>
