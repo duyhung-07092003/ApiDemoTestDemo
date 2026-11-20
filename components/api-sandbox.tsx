@@ -1105,7 +1105,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
-                    <h3 className="form-section-label">Địa điểm kinh doanh</h3>
+                    <section className="business-location-group" aria-labelledby="business-location-heading">
+                    <h3 className="form-section-label" id="business-location-heading">Địa điểm kinh doanh</h3>
+                    <div className="form-grid">
                     <Field label="Mã địa điểm kinh doanh · LocationCode">
                       <input
                         value={invoice.locationCode}
@@ -1132,6 +1134,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         }
                       />
                     </Field>
+                    </div>
+                    </section>
+                    <h3 className="form-section-label">Thông tin bổ sung</h3>
                     <Field label="AmountInWords · Số tiền bằng chữ" labelBreakAt="AmountInWords ·" required={invoice.profile !== "receipt"} help="Thẻ XML luôn có; form yêu cầu nhập cho TT78, trừ cấu hình cleaner của API có thể sinh tự động.">
                       <input
                         value={invoice.amountInWords}
