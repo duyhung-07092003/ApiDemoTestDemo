@@ -49,6 +49,9 @@
 .invoice-issues-popup { position: fixed; z-index: 80; right: 20px; bottom: 20px; display: flex; flex-direction: column; width: min(390px, calc(100vw - 32px)); max-height: min(60dvh, 560px); color: var(--ui-text); background: var(--ui-surface); border: 1px solid var(--ui-accent-line); border-top: 4px solid var(--ui-solid); border-radius: 16px; box-shadow: 0 12px 48px #00000024; overflow: hidden; }
 .invoice-issues-popup-heading { display: flex; flex-shrink: 0; gap: 10px; align-items: center; padding: 14px 16px 10px; background: var(--ui-soft); }
 .invoice-issues-popup-heading > svg { flex-shrink: 0; color: var(--ui-accent); }
+.invoice-issues-popup-heading > div { flex: 1; min-width: 0; }
+.invoice-issues-popup-dismiss { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 30px; height: 30px; margin-left: auto; padding: 0; color: var(--ui-muted); background: transparent; border: 0; border-radius: 8px; cursor: pointer; }
+.invoice-issues-popup-dismiss:hover { color: var(--ui-text); background: var(--ui-input); }
 .invoice-issues-popup h3 { margin: 0; color: var(--ui-text); font-size: 17px; }
 .invoice-issues-popup-heading p { margin: 3px 0 0; color: var(--ui-accent); font-size: 13px; font-weight: 700; }
 .invoice-issues-popup-note { flex-shrink: 0; margin: 0; padding: 10px 16px; color: var(--ui-muted); border-bottom: 1px solid var(--ui-line); font-size: 13px; line-height: 1.5; }
