@@ -11,6 +11,7 @@ import type { CompanySimulation } from "@/lib/softdreams/company-preview";
 import type { XmlSelection } from "@/lib/softdreams/xml-selection";
 import { invoiceFieldExplanation } from "@/lib/softdreams/invoice-field-explanation";
 import { IMPORT_FIELD_HELP } from "@/lib/softdreams/import-field-help";
+import { invoiceAmountStatus } from "@/lib/softdreams/invoice-amount-status";
 
 type Issue = { field: string; message: string };
 type InvoiceTextKey = { [K in keyof InvoiceInput]: InvoiceInput[K] extends string ? K : never }[keyof InvoiceInput];
@@ -27,6 +28,7 @@ export function ImportInvoiceForm({ value, onChange, issues, simulation, onSimul
   const [wordError, setWordError] = useState("");
   const [openHelp, setOpenHelp] = useState<string | null>(null);
   const totals = calculateInvoice(value);
+  const amountStatus = invoiceAmountStatus(value);
   const car = value.specialInvoice === "1";
   const showBuyer = extraBuyer || car || !!value.identification || !!value.phone || !!value.provinceCode || !!value.provinceName || !!value.communeCode || !!value.communeName;
   const showLocation = location || !!value.locationCode || !!value.locationName || !!value.locationAddress;
@@ -82,7 +84,7 @@ export function ImportInvoiceForm({ value, onChange, issues, simulation, onSimul
       {field("vatRate", "VATRate", "Thuế suất hóa đơn (các dòng lấy theo)", true, "Mẫu một thuế: thay đổi tại đây để áp dụng cho tất cả dòng. Thuế -3 cần VATRateOther; -5 cần toàn hóa đơn cùng CTTC.", <StyledSelect value={value.vatRate} onChange={(next) => {
         const rate = Number(next); onChange({ ...value, vatRate: rate, products: value.products.map((row) => ({ ...row, vat: rate, vatRateOther: value.vatRateOther })) });
       }} options={VAT_RATES.map(([rate, label]) => ({ value: rate, label: `${rate} · ${label}` }))} />)}
-      {field("amountOverride", "Amount", "Tổng tiền thanh toán", true, "Gợi ý: Total + VATAmount hoặc tổng Amount dòng. Giá trị nhập riêng được ưu tiên.", <input type="number" step="any" value={value.amountOverride === "" ? totals.amount : value.amountOverride} onChange={(event) => update("amountOverride", event.target.value)} />)}
+      {field("amountOverride", "Amount", "Tổng tiền thanh toán", true, "Amount = Total + VATAmount. Cần tính hoặc nhập tổng tiền trước khi gửi.", <div className="amount-total-control"><input type="number" step="any" value={value.amountOverride} placeholder="Chưa tính tổng tiền thanh toán" onChange={(event) => update("amountOverride", event.target.value)} /><button type="button" className="subtle-button" disabled={amountStatus.expected === undefined} onClick={() => { if (amountStatus.expected !== undefined) update("amountOverride", String(amountStatus.expected)); }}>Tính lại Amount</button><small>{amountStatus.expected === undefined ? "Kiểm tra Total và VATAmount trước khi tính tổng." : `Total + VATAmount = ${format(amountStatus.expected)} ${value.currency}`}</small></div>)}
       {value.vatRate === -3 && field("vatRateOther", "VATRateOther", "Thuế suất khác (%)", true, "Giá trị từ 0 đến 99.99, tối đa 2 chữ số thập phân.", <input type="number" step="0.01" min="0" max="99.99" value={value.vatRateOther} onChange={(event) => onChange({ ...value, vatRateOther: event.target.value, products: value.products.map((row) => ({ ...row, vatRateOther: event.target.value })) })} />)}
       {field("amountInWords", "AmountInWords", "Số tiền viết bằng chữ", value.profile !== "receipt", "API nhận chuỗi bạn gửi. Nút Điền theo Amount đọc số nguyên VND tại trình duyệt; hãy đối chiếu số tiền trước khi gửi.", <div className="amount-words-control">{input("amountInWords", 255)}<button type="button" className="subtle-button" disabled={value.currency !== "VND"} onClick={() => { try { update("amountInWords", amountInWordsVnd(totals.amount)); setWordError(""); } catch (error) { setWordError(error instanceof Error ? error.message : "Không đọc được số tiền."); } }}>Điền theo Amount</button>{wordError && <small role="alert">{wordError}</small>}</div>)}
       {field("listAttachNum", "ListAttachNum", "Số bảng kê", false, "Có thể cần cùng ngày bảng kê khi dữ liệu tiền âm/chiết khấu yêu cầu bảng kê.", input("listAttachNum"), true)}

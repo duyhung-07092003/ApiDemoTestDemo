@@ -1,9 +1,13 @@
 import { calculateInvoice, calculateProduct, createEmptyInvoice, initialInvoice, type InvoiceInput } from "./invoice";
+import { invoiceAmountStatus } from "./invoice-amount-status";
 
 // Only fields present in the supplied single VAT HTML form are forwarded.
 const fields = ["pattern", "serial", "ikey", "payment", "customer", "buyer", "tax", "address", "date", "currency", "exchangeRate", "vatRate", "vatRateOther", "amountInWords", "listAttachNum", "listAttachDate", "identification", "phone", "provinceCode", "provinceName", "communeCode", "communeName", "locationCode", "locationName", "locationAddress"] as const;
 export function htmlFormIssues(value: InvoiceInput) {
   const issues: Array<{ field: string; message: string }> = [];
+  const amount = invoiceAmountStatus(value);
+  if (amount.state === "missing") issues.push({ field: "amountOverride", message: "Amount tổng tiền chưa được tính hoặc chưa nhập. Bấm Tính lại Amount hoặc nhập tổng tiền thanh toán trước khi gửi." });
+  if (amount.state === "mismatch") issues.push({ field: "amountOverride", message: `Amount tổng tiền chưa khớp Total + VATAmount (đang nhập ${amount.actual}; đối chiếu ${amount.expected}). Kiểm tra và tính lại tổng tiền.` });
   if (value.specialInvoice === "1") value.products.forEach((product, index) => {
     if (product.feature !== "5") return;
     try {

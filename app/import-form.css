@@ -87,6 +87,9 @@
 .import-inline-check > input { flex-shrink: 0; width: 16px; height: 16px; margin-top: 3px; accent-color: var(--ui-solid); }
 .import-full-note { grid-column: 1 / -1; }
 .amount-words-control { display: grid; gap: 7px; }
+.amount-total-control { display: grid; gap: 7px; }
+.amount-total-control > button { justify-self: start; }
+.amount-total-control > small { color: var(--ui-muted); font-size: 12px; line-height: 1.5; }
 .amount-words-control > button { justify-self: start; }
 .amount-words-control > small { color: #b91c1c; }
 .import-products { margin-top: 24px; }

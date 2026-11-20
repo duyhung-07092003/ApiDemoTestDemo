@@ -231,7 +231,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [secret, setSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [apiKeyName, setApiKeyName] = useState("x-api-key");
-  const [invoices, setInvoices] = useState<InvoiceInput[]>([initialInvoice]);
+  const [invoices, setInvoices] = useState<InvoiceInput[]>([{ ...initialInvoice, amountOverride: String(calculateInvoice(initialInvoice).amount) }]);
   const [selectedInvoice, setSelectedInvoice] = useState(0);
   const invoice = invoices[selectedInvoice];
   function setInvoice(update: React.SetStateAction<InvoiceInput>) {
@@ -330,9 +330,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
     return `${method} ${domain.replace(/\/+$/, "")}${apiPath}${headers.length ? `\n${headers.join("\n")}` : ""}${method !== "GET" ? `\n\n${requestBody}` : ""}`;
   }, [auth, method, domain, apiPath, body, apiKeyName, isInvoice, xmlBody, template]);
   const invoiceTotals = useMemo(() => calculateInvoice(invoice), [invoice]);
-  const batchIssues = useMemo(() => (template === "invoice" ? htmlInvoices : invoices).map((row) => {
+  const batchIssues = useMemo(() => (template === "invoice" ? htmlInvoices : invoices).map((row, index) => {
     const issues = invoiceIssues({ ...row, tax: row.tax.replace(/\s/g, "") }).map((issue) => template === "invoice" && /^products\[\d+\]\.vatRateOther$/.test(issue.field) ? { ...issue, field: "vatRateOther" } : template === "invoice" && /^products\[\d+\]\.vatRate$/.test(issue.field) ? { ...issue, field: "vatRate" } : issue);
-    if (template === "invoice") issues.push(...htmlFormIssues(row));
+    if (template === "invoice") issues.push(...htmlFormIssues(invoices[index]));
     if (row.ikey.trim() && invoices.filter((other) => other.ikey.trim() === row.ikey.trim()).length > 1) issues.push({ field: "ikey", message: "Ikey bị trùng với hóa đơn khác trong gói." });
     return issues;
   }), [invoices, htmlInvoices, template]);
@@ -956,7 +956,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     <button
                       className="subtle-button"
                       disabled={loading}
-                      onClick={() => { setInvoice({ ...structuredClone(initialInvoice), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }); setInvoiceMode("single"); }}
+                      onClick={() => { setInvoice({ ...structuredClone(initialInvoice), amountOverride: String(calculateInvoice(initialInvoice).amount), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }); setInvoiceMode("single"); }}
                     >
                       <WandSparkles size={14} /> Điền mẫu
                     </button>
