@@ -268,6 +268,8 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showConfig, setShowConfig] = useState(false);
   const [prettyPreview, setPrettyPreview] = useState(false);
+  const [showSerial, setShowSerial] = useState(false);
+  const serialVisible = showSerial || !!invoice.serial.trim();
   const [invoiceModes, setInvoiceModes] = useState<Array<"single" | "multi">>(["single"]);
   const invoiceMode = invoiceModes[selectedInvoice] ?? "single";
   const [companySimulation, setCompanySimulation] = useState<CompanySimulation>({ notValidate: false, skipVat8: false, from: "", to: "" });
@@ -341,6 +343,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
     return grouped;
   }, [formIssues]);
   function clearForm() {
+    setShowSerial(false);
     setExplanation(null);
     setInvoices([createEmptyInvoice()]);
     setInvoiceModes(["single"]);
@@ -976,9 +979,10 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   {template === "invoice" && <>
                     <section className="invoice-batch-config" aria-label="Dải hóa đơn dùng chung">
                       <h3>Tham số request · dùng chung cho cả gói</h3>
-                      <div className="form-grid">
+                      <label className="import-inline-check"><input type="checkbox" checked={serialVisible} aria-expanded={serialVisible} aria-controls="invoice-field-serial" onChange={(event) => { setShowSerial(event.target.checked); if (!event.target.checked) setInvoice({ ...invoice, serial: "" }); }} /><span>Điền Serial <small>Tùy chọn · bỏ chọn để không gửi Serial</small></span></label>
+                      <div className="form-grid" data-serial-visible={serialVisible}>
                         <Field validationField="pattern" label="Pattern · Ký hiệu hóa đơn" xmlTag={null} help={IMPORT_FIELD_HELP.Pattern.rule}><input value={invoice.pattern} onChange={(event) => setInvoice({ ...invoice, pattern: event.target.value })} placeholder="vd: 1C26TAA" /></Field>
-                        <Field validationField="serial" label="Serial · Ký hiệu mẫu số" xmlTag={null} help={IMPORT_FIELD_HELP.Serial.rule}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="vd: 1" /></Field>
+                        {serialVisible && <Field validationField="serial" label="Serial · Ký hiệu mẫu số (tùy chọn)" xmlTag={null} help={IMPORT_FIELD_HELP.Serial.rule}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Có thể để trống · ví dụ: 1" /></Field>}
                       </div>
                       <p>Cần có nếu đơn vị dùng nhiều mẫu/ký hiệu. Để trống thì không đưa vào request. Các tham số này áp dụng chung cho cả gói. Dấu * là trường bắt buộc.</p>
                     </section>
