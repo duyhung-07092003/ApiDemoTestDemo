@@ -65,8 +65,6 @@
 .sandbox-shell[data-theme] .result-tabs { background: var(--ui-surface); border-color: var(--ui-line); }
 .sandbox-shell[data-theme] .result-tabs > button:not(.copy-button) { color: var(--ui-muted); }
 .sandbox-shell[data-theme] .result-tabs > button[aria-selected="true"] { color: #fff; background: var(--ui-solid); border-bottom-color: var(--ui-solid); }
-.sandbox-shell[data-theme] .invoice-batch-list button { color: var(--ui-text); background: var(--ui-surface); border-color: var(--ui-line); }
-.sandbox-shell[data-theme] .invoice-batch-list button[aria-pressed="true"] { color: var(--ui-accent); background: var(--ui-soft); border-color: var(--ui-solid); box-shadow: 0 0 0 1px var(--ui-solid); }
 .sandbox-shell[data-theme] .invoice-current-heading { color: var(--ui-accent); border-color: var(--ui-line); }
 .sandbox-shell[data-theme] :is(.invoice-options > summary, .product-advanced > summary, .response-header code) { color: var(--ui-accent); }
 .sandbox-shell[data-theme] .help-tip:focus-visible { outline: 2px solid var(--ui-solid); outline-offset: 2px; }

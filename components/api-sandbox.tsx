@@ -358,7 +358,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
 
   function selectInvoice(index: number) {
     setSelectedInvoice(index); setFocusedXml(null);
-    requestAnimationFrame(() => document.getElementById(`invoice-select-${index}`)?.scrollIntoView({ block: "nearest", inline: "nearest" }));
+    requestAnimationFrame(() => document.getElementById("invoice-batch-selector")?.scrollIntoView({ block: "nearest", inline: "nearest" }));
   }
   function addInvoice(copy = false) {
     if (invoices.length >= MAX_INVOICES_PER_REQUEST || loading) return;
@@ -976,9 +976,10 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           <button type="button" className="subtle-button" disabled={invoices.length === 1} onClick={removeInvoice}><Trash2 size={14} />Xóa hóa đơn</button>
                         </div>
                       </div>
-                      <div className="invoice-batch-list" role="group" aria-label="Chọn hóa đơn">{invoices.map((row, index) => <button type="button" key={index} id={`invoice-select-${index}`} aria-pressed={selectedInvoice === index} data-invalid={batchIssues[index].length > 0 || undefined} onClick={() => selectInvoice(index)}>
-                        <strong>Hóa đơn {index + 1}</strong><span>{row.customer || row.buyer || "Chưa nhập khách hàng"}</span><small>{batchIssues[index].length ? `${batchIssues[index].length} lỗi cần sửa` : "Đã đủ dữ liệu tại form"}</small>
-                      </button>)}</div>
+                      <label className="invoice-batch-selector" id="invoice-batch-selector">
+                        <span>Chọn hóa đơn đang nhập</span>
+                        <StyledSelect value={selectedInvoice} disabled={loading} onChange={(next) => selectInvoice(Number(next))} options={invoices.map((row, index) => ({ value: index, label: `Hóa đơn ${index + 1} · ${row.customer || row.buyer || "Chưa nhập khách hàng"} · ${batchIssues[index].length ? `${batchIssues[index].length} lỗi cần sửa` : "Đủ dữ liệu tại form"}` }))} />
+                      </label>
                       <p className="invoice-batch-note" role="status">{batchIssues.filter((issues) => !issues.length).length}/{invoices.length} hóa đơn đủ dữ liệu tại form. Giới hạn công cụ: {MAX_INVOICES_PER_REQUEST} hóa đơn/gói, tối đa 2 MB. Một hóa đơn sai có thể khiến cả gói bị từ chối. Mỗi hóa đơn cần Ikey riêng.</p>
                     </section>
                     <h3 className="invoice-current-heading" id="invoice-editor">Đang nhập hóa đơn {selectedInvoice + 1} / {invoices.length}</h3>
