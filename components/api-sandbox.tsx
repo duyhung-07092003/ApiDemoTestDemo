@@ -39,6 +39,8 @@ import type { XmlScope, XmlSelection } from "@/lib/softdreams/xml-selection";
 import { IMPORT_FIELD_HELP } from "@/lib/softdreams/import-field-help";
 import { buildHtmlInvoiceBatch, toHtmlSingleVatInvoice, htmlFormIssues } from "@/lib/softdreams/html-invoice";
 import { InvoiceIssuesPopup } from "./invoice-issues-popup";
+import { CompanySimulationSettings } from "./company-simulation-settings";
+import { applyInvoiceRange } from "@/lib/softdreams/invoice-range";
 
 type TemplateId =
   | "invoice"
@@ -384,7 +386,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
     next.ikey = crypto.randomUUID();
     // Reference and tax authority codes identify the original invoice and cannot be copied.
     if (copy) { next.fkey = ""; next.taxAuthorityCode = ""; }
-    setInvoices((current) => [...current, next]);
+    setInvoices((current) => [...current, copy ? next : applyInvoiceRange(next, invoice.specialInvoice)]);
     setInvoiceModes((current) => [...current, copy ? invoiceMode : "single"]);
     selectInvoice(invoices.length);
   }
@@ -956,7 +958,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     <button
                       className="subtle-button"
                       disabled={loading}
-                      onClick={() => { setInvoice({ ...structuredClone(initialInvoice), amountOverride: String(calculateInvoice(initialInvoice).amount), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }); setInvoiceMode("single"); }}
+                      onClick={() => { setInvoice(applyInvoiceRange({ ...structuredClone(initialInvoice), amountOverride: String(calculateInvoice(initialInvoice).amount), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }, invoice.specialInvoice)); setInvoiceMode("single"); }}
                     >
                       <WandSparkles size={14} /> Điền mẫu
                     </button>
@@ -993,12 +995,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           <button type="button" className="subtle-button" disabled={invoices.length === 1} onClick={removeInvoice}><Trash2 size={14} />Xóa hóa đơn</button>
                         </div>
                       </div>
+                      <label className="field invoice-batch-range" id="invoice-field-specialInvoice"><span>Loại dải hóa đơn</span><StyledSelect value={invoice.specialInvoice} disabled={loading} onChange={(specialInvoice) => { setExplanation(null); setFocusedXml(null); setInvoices((current) => current.map((row) => applyInvoiceRange(row, specialInvoice))); }} options={[{ value: "0", label: "Dải thông thường" }, { value: "1", label: "Dải đặc thù: mua bán xe" }, { value: "2", label: "Dải đặc thù: dịch vụ vận chuyển" }, { value: "3", label: "Dải đặc thù: vận chuyển trên nền tảng TMĐT" }]} /><small>Cấu hình của dải · dùng chung cả gói · không gửi trong request</small></label>
                       <label className="invoice-batch-selector" id="invoice-batch-selector">
                         <span>Chọn hóa đơn đang nhập</span>
                         <StyledSelect value={selectedInvoice} disabled={loading} onChange={(next) => selectInvoice(Number(next))} options={invoices.map((row, index) => ({ value: index, label: `Hóa đơn ${index + 1} · ${row.customer || row.buyer || "Chưa nhập khách hàng"} · ${batchIssues[index].length ? `${batchIssues[index].length} lỗi cần sửa` : "Đủ dữ liệu tại form"}` }))} />
                       </label>
                       <p className="invoice-batch-note" role="status">{batchIssues.filter((issues) => !issues.length).length}/{invoices.length} hóa đơn đủ dữ liệu tại form. Giới hạn công cụ: {MAX_INVOICES_PER_REQUEST} hóa đơn/gói, tối đa 2 MB. Một hóa đơn sai có thể khiến cả gói bị từ chối. Mỗi hóa đơn cần Ikey riêng.</p>
                     </section>
+                    <CompanySimulationSettings simulation={companySimulation} onSimulationChange={setCompanySimulation} />
                     <h3 className="invoice-current-heading" id="invoice-editor">Đang nhập hóa đơn {selectedInvoice + 1} / {invoices.length}</h3>
                   </>}
 {template !== "invoice" && formIssues.length > 0 && <details className="invoice-form-issues" open><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><button type="button" onClick={() => {
@@ -1008,7 +1012,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   field?.scrollIntoView({ behavior: "smooth", block: "center" });
   field?.querySelector<HTMLElement>('input:not([type="hidden"]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
 }}><code>{issue.field}</code>: {issue.message}</button></li>)}</ul></details>}
-{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} simulation={companySimulation} onSimulationChange={setCompanySimulation} explanation={explanation?.invoiceIndex === selectedInvoice ? explanation : null} onCloseExplanation={() => { setExplanation(null); setFocusedXml(null); }} /> : <><section
+{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} explanation={explanation?.invoiceIndex === selectedInvoice ? explanation : null} onCloseExplanation={() => { setExplanation(null); setFocusedXml(null); }} /> : <><section
                     className="tax-mode-section"
                     aria-label="Thiết lập mẫu thuế"
                     style={{ marginTop: 14 }}
