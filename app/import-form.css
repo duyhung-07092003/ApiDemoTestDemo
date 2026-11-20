@@ -15,6 +15,35 @@
 .import-field-help p { margin: 4px 0 0; color: var(--ui-muted); }
 .import-field-help .import-help-error { color: #b45309; }
 .import-company-config > p { color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.import-config-disclosure { margin-top: 22px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-surface); }
+.import-config-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; list-style: none; cursor: pointer; }
+.import-config-disclosure > summary::-webkit-details-marker { display: none; }
+.import-config-disclosure summary strong { display: block; color: var(--ui-text); font-size: 15px; }
+.import-config-disclosure summary small { display: block; margin-top: 3px; color: var(--ui-muted); font-size: 12px; }
+.import-config-disclosure summary > svg { flex-shrink: 0; color: var(--ui-accent); transition: transform .15s; }
+.import-config-disclosure[open] summary > svg { transform: rotate(180deg); }
+.import-config-body { padding: 0 16px 14px; border-top: 1px solid var(--ui-line); }
+.import-config-body > p { color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.import-expand-card { margin-top: 12px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-surface); overflow: visible; }
+.import-expand-card[data-open="true"] { border-color: var(--ui-accent-line); }
+.import-expand-toggle { display: flex; align-items: center; gap: 10px; min-height: 72px; margin: 0; padding: 14px 16px; cursor: pointer; }
+.import-expand-toggle > input { flex: 0 0 auto; width: 17px; height: 17px; margin: 0; accent-color: var(--ui-solid); }
+.import-expand-toggle > span { flex: 1; min-width: 0; }
+.import-expand-toggle strong { display: block; color: var(--ui-text); font-size: 15px; line-height: 1.4; }
+.import-expand-toggle small { display: block; margin-top: 4px; color: var(--ui-muted); font-size: 12px; line-height: 1.5; }
+.import-expand-icon, .import-expand-chevron { flex-shrink: 0; color: var(--ui-accent); }
+.import-expand-toggle em { flex-shrink: 0; padding: 3px 8px; border-radius: 20px; background: var(--ui-input); color: var(--ui-muted); font-size: 11px; font-style: normal; }
+.import-expand-chevron { transition: transform .15s; }
+.import-expand-card[data-open="true"] .import-expand-chevron { transform: rotate(180deg); }
+.import-expand-body { padding: 0 16px 16px; border-top: 1px solid var(--ui-line); }
+.import-expand-hint { margin: 12px 0 0; color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.import-unsupported-note { margin-top: 16px; padding: 8px 0; color: var(--ui-muted); font-size: 12px; }
+.import-unsupported-note summary { cursor: pointer; }
+@media (max-width: 640px) {
+  .import-expand-toggle { gap: 8px; padding: 12px; }
+  .import-expand-toggle em { display: none; }
+  .import-expand-body { padding: 0 12px 12px; }
+}
 .import-inline-check small { display: block; margin-top: 3px; color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
 .import-location-fields .field[data-xml-tag="LocationAddress"] { grid-column: 1 / -1; }
 .import-content-form .field[data-request-selected] > :is(input, .styled-select-trigger, .date-picker-trigger),

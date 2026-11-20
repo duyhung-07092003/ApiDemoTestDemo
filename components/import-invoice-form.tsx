@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CircleHelp, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, CircleHelp, MapPin, Plus, Trash2, UserRound } from "lucide-react";
 import { calculateInvoice, calculateProduct, initialInvoice, VAT_RATES, FEATURES, type InvoiceInput } from "@/lib/softdreams/invoice";
 import { amountInWordsVnd } from "@/lib/softdreams/amount-in-words";
 import { SpecialExtraFields } from "./special-extra-fields";
@@ -28,6 +28,8 @@ export function ImportInvoiceForm({ value, onChange, issues, simulation, onSimul
   const [openHelp, setOpenHelp] = useState<string | null>(null);
   const totals = calculateInvoice(value);
   const car = value.specialInvoice === "1";
+  const showBuyer = extraBuyer || car || !!value.identification || !!value.phone || !!value.provinceCode || !!value.provinceName || !!value.communeCode || !!value.communeName;
+  const showLocation = location || !!value.locationCode || !!value.locationName || !!value.locationAddress;
   const needsBuyerDetails = value.profile !== "receipt" && (!!value.tax || car);
   const selectedExplanation = explanation ? invoiceFieldExplanation(value, explanation) : null;
   const format = (next: string | number) => typeof next === "number" ? Number.isFinite(next) ? new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 4 }).format(next) : "—" : next || "(chưa nhập)";
@@ -94,23 +96,29 @@ export function ImportInvoiceForm({ value, onChange, issues, simulation, onSimul
       <button type="button" className="subtle-button" onClick={() => update("products", [...value.products, { ...initialInvoice.products[0], code: "", name: "", quantity: 1, price: 0, vat: value.vatRate, vatRateOther: value.vatRateOther, totalOverride: "", vatAmountOverride: "", amountOverride: "", extra: "" }])}><Plus size={14} />Thêm sản phẩm</button>
     </section>
 
-    <section className="import-company-config">
-      <div className="import-section-heading"><h3>Giả lập cấu hình công ty</h3></div>
+    <details className="import-company-config import-config-disclosure">
+      <summary><span><strong>Giả lập cấu hình công ty</strong><small>Loại dải hóa đơn và các tùy chọn mô phỏng</small></span><ChevronDown size={17} /></summary>
+      <div className="import-config-body">
       <p>Các tùy chọn này là cấu hình riêng của công ty bạn (công ty tự bật trên hệ thống), không gửi trong request. Bật để xem sandbox phản ứng thế nào.</p>
       <label className="field" id="invoice-field-specialInvoice"><span>Loại dải hóa đơn (cấu hình của dải, không gửi trong request)</span><StyledSelect value={value.specialInvoice} onChange={(specialInvoice) => onChange({ ...value, specialInvoice, products: value.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) })} options={[{ value: "0", label: "Dải thông thường" }, { value: "1", label: "Dải đặc thù: mua bán xe" }, { value: "2", label: "Dải đặc thù: dịch vụ vận chuyển" }, { value: "3", label: "Dải đặc thù: vận chuyển trên nền tảng TMĐT" }]} /></label>
       <label className="import-inline-check"><input type="checkbox" checked={simulation.notValidate} onChange={(event) => onSimulationChange({ ...simulation, notValidate: event.target.checked })} /><span>Công ty bật <code>NotValidateXmlData</code> (bỏ qua kiểm tra trường và sản phẩm; vẫn kiểm XSD, Ikey, chiết khấu, năm ký hiệu, thuế 8%)<small>Ví dụ: bỏ trống cả CusName lẫn Buyer để so sánh kết quả mô phỏng khi bật/tắt.</small></span></label>
       <label className="import-inline-check"><input type="checkbox" checked={simulation.skipVat8} onChange={(event) => onSimulationChange({ ...simulation, skipVat8: event.target.checked })} /><span>Công ty bật <code>SkipVat8=1</code> (bỏ qua kiểm thuế 8% theo thời hạn giảm thuế; chỉ áp dụng ký hiệu bắt đầu 1, 2, 5)<small>Ví dụ trong HTML: chọn thuế 8% và ngày năm 2027 để so sánh khi bật/tắt. Thời hạn thực tế phụ thuộc CheckVat8 trên server.</small></span></label>
       <p className="import-full-note">Các công tắc chỉ mô phỏng; không tự bật cấu hình trên Softdreams. Gửi thật vẫn được server kiểm tra dữ liệu. Thời hạn thuế 8% cần đối chiếu cấu hình công ty.</p>
-    </section>
+      </div>
+    </details>
     <section className="import-conditional-fields">
-      <div className="import-section-heading"><h3>Bắt buộc theo điều kiện</h3></div>
-      <label className="import-inline-check"><input type="checkbox" checked={extraBuyer || car || !!value.identification || !!value.phone || !!value.provinceCode || !!value.provinceName || !!value.communeCode || !!value.communeName} disabled={car} onChange={(event) => { setExtraBuyer(event.target.checked); if (!event.target.checked) onChange({ ...value, identification: "", phone: "", provinceCode: "", provinceName: "", communeCode: "", communeName: "" }); }} /><span>Thông tin bổ sung người mua: CCCD, điện thoại, tỉnh/xã <small>Bắt buộc theo điều kiện khi dải là mua bán xe; CCCD là trường bổ sung.</small></span></label>
-      {(extraBuyer || car || value.identification || value.phone || value.provinceCode || value.provinceName || value.communeCode || value.communeName) && <div className="form-grid">
+      <div className="import-section-heading"><h3>Thông tin bổ sung</h3></div>
+      <div className="import-expand-card" data-open={showBuyer}>
+      <label className="import-expand-toggle"><input type="checkbox" checked={showBuyer} disabled={car} aria-expanded={showBuyer} aria-controls="import-buyer-panel" onChange={(event) => { setExtraBuyer(event.target.checked); if (!event.target.checked) onChange({ ...value, identification: "", phone: "", provinceCode: "", provinceName: "", communeCode: "", communeName: "" }); }} /><UserRound size={19} className="import-expand-icon" /><span><strong>Thông tin người mua bổ sung</strong><small>CCCD, điện thoại, tỉnh/thành phố và xã/phường</small></span><em>{car ? "Dải mua bán xe" : "Tùy chọn"}</em><ChevronDown size={17} className="import-expand-chevron" /></label>
+      {showBuyer && <div className="import-expand-body" id="import-buyer-panel"><p className="import-expand-hint">{car ? "Tự mở theo dải mua bán xe. Điền các trường có dấu *; CCCD là thông tin bổ sung." : "Chỉ điền khi cần bổ sung thông tin người mua."}</p><div className="form-grid">
         {([ ["identification", "CusIdentification", "CCCD"], ["phone", "CusPhone", "Điện thoại"], ["provinceCode", "ProvinceCode", "Mã tỉnh"], ["provinceName", "ProvinceName", "Tên tỉnh/thành phố"], ["communeCode", "CommuneCode", "Mã xã"], ["communeName", "CommuneName", "Tên xã/phường"] ] as const).map(([key, tag, label]) => field(key, tag, label, car && key !== "identification", key === "identification" ? "9 hoặc 12 chữ số." : "Bắt buộc khi cấu hình dải là mua bán xe.", input(key)))}
-      </div>}
-      <label className="import-inline-check"><input type="checkbox" checked={location || !!value.locationCode || !!value.locationName || !!value.locationAddress} onChange={(event) => { setLocation(event.target.checked); if (!event.target.checked) onChange({ ...value, locationCode: "", locationName: "", locationAddress: "" }); }} /><span>Gửi địa điểm kinh doanh <small>Không bắt buộc; cả ba trống thì hệ thống có thể tự điền theo cấu hình công ty.</small></span></label>
-      {(location || value.locationCode || value.locationName || value.locationAddress) && <div className="form-grid import-location-fields">{([ ["locationCode", "LocationCode", "Mã địa điểm"], ["locationName", "LocationName", "Tên địa điểm"], ["locationAddress", "LocationAddress", "Địa chỉ địa điểm"] ] as const).map(([key, tag, label]) => field(key, tag, label, false, key === "locationCode" ? "Không bắt buộc, tối đa 5 ký tự. Cả ba trống: API tự điền nếu công ty đã cấu hình." : "Không bắt buộc, tối đa 400 ký tự.", input(key)))}</div>}
+      </div></div>}
+      </div>
+      <div className="import-expand-card" data-open={showLocation}>
+      <label className="import-expand-toggle"><input type="checkbox" checked={showLocation} aria-expanded={showLocation} aria-controls="import-location-panel" onChange={(event) => { setLocation(event.target.checked); if (!event.target.checked) onChange({ ...value, locationCode: "", locationName: "", locationAddress: "" }); }} /><MapPin size={19} className="import-expand-icon" /><span><strong>Địa điểm kinh doanh</strong><small>Bổ sung mã, tên và địa chỉ địa điểm kinh doanh</small></span><em>Tùy chọn</em><ChevronDown size={17} className="import-expand-chevron" /></label>
+      {showLocation && <div className="import-expand-body" id="import-location-panel"><p className="import-expand-hint">Cả ba trường trống: hệ thống có thể tự điền theo cấu hình công ty.</p><div className="form-grid import-location-fields">{([ ["locationCode", "LocationCode", "Mã địa điểm"], ["locationName", "LocationName", "Tên địa điểm"], ["locationAddress", "LocationAddress", "Địa chỉ địa điểm"] ] as const).map(([key, tag, label]) => field(key, tag, label, false, key === "locationCode" ? "Không bắt buộc, tối đa 5 ký tự. Cả ba trống: API tự điền nếu công ty đã cấu hình." : "Không bắt buộc, tối đa 400 ký tự.", input(key)))}</div></div>}
+      </div>
     </section>
-    <p className="import-full-note">API hiện chưa nhận các thẻ người mua nước ngoài theo NĐ 254 (CusForeignOrgId, NationalityCode, CusNationality) và BusinessProdGroupCode. Gửi các thẻ này sẽ bị lỗi 400 nên sandbox không có ô nhập.</p>
+    <details className="import-unsupported-note"><summary>Lưu ý về các trường API chưa hỗ trợ</summary><p className="import-full-note">API hiện chưa nhận các thẻ người mua nước ngoài theo NĐ 254 (CusForeignOrgId, NationalityCode, CusNationality) và BusinessProdGroupCode. Gửi các thẻ này sẽ bị lỗi 400 nên sandbox không có ô nhập.</p></details>
   </div>;
 }
