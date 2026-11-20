@@ -2,10 +2,9 @@
 .invoice-batch-selector { display: grid; gap: 7px; min-width: 0; margin-top: 14px; }
 .invoice-batch-selector > span { color: var(--ui-muted); font-size: 13px; font-weight: 600; }
 .invoice-batch-selector .styled-select-trigger { text-align: left; }
-.invoice-batch-range { display: grid; gap: 7px; margin-top: 16px; }
+.invoice-batch-range { display: grid; gap: 7px; }
 .invoice-batch-range > span:first-child { margin-bottom: 0; }
 .invoice-batch-range > small { color: var(--ui-muted); font-size: 12px; line-height: 1.5; }
-.invoice-batch-config .form-grid[data-serial-visible="false"] { grid-template-columns: minmax(0, 1fr); }
 .invoice-parameters-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .invoice-parameters-heading .import-inline-check { align-items: center; margin: 0; font-size: 13px; }
 .invoice-parameters-heading .import-inline-check > input { margin-top: 0; }
