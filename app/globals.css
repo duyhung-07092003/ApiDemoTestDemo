@@ -780,3 +780,32 @@ button, input, select, textarea { font-family: "Times New Roman", Times, serif; 
 @media (max-width: 640px) {
   .form-panel .business-location-group > .form-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Share label height within each visual row instead of reserving two lines everywhere. */
+@supports (grid-template-rows: subgrid) {
+  :is(.form-grid, .product-row, .invoice-summary) > .field {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 5px;
+    align-self: stretch;
+    align-content: start;
+  }
+  :is(.form-grid, .product-row, .invoice-summary) > .field > span:first-child {
+    grid-row: 1;
+    align-self: end;
+    margin-bottom: 0;
+  }
+  :is(.form-grid, .product-row, .invoice-summary) > .field > :nth-child(2) {
+    grid-row: 2;
+    align-self: start;
+  }
+  :is(.form-grid, .product-row, .invoice-summary) > .field > .field-validation-messages {
+    grid-row: 3;
+    align-self: start;
+  }
+}
+.field-validation-messages { display: grid; gap: 4px; min-width: 0; }
+.sandbox-shell .field input:not([type="checkbox"]):not([type="radio"]),
+.sandbox-shell .field select,
+.sandbox-shell .field .styled-select-trigger { height: 44px; min-height: 44px; }

@@ -7,7 +7,7 @@ import { InvoiceExtraFields } from "./invoice-extra-fields";
 type InvoiceIssue = { field: string; message: string };
 const issueMessages = (issues: InvoiceIssue[], field: string) => issues.filter((issue) => issue.field === field).map((issue) => issue.message);
 const issueId = (field: string) => `invoice-field-${encodeURIComponent(field)}`;
-function FieldIssues({ messages }: { messages: string[] }) { return <>{messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}</>; }
+function FieldIssues({ messages }: { messages: string[] }) { return messages.length ? <div className="field-validation-messages">{messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}</div> : null; }
 
 export function InvoiceOptions({ value, onChange, issues = [] }: { value: InvoiceInput; onChange: (value: InvoiceInput) => void; issues?: InvoiceIssue[] }) {
   const mtt = value.pattern.trim().toUpperCase()[4] === "M";

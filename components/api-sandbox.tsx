@@ -1794,7 +1794,7 @@ function Field({
         {help && <Help>{help}</Help>}
       </span>
       {children}
-      {messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}
+      {messages.length > 0 && <div className="field-validation-messages">{messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}</div>}
     </label>
   );
 }
