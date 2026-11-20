@@ -1,5 +1,4 @@
-import { buildInvoice } from "@/lib/softdreams/invoice";
-import { validateInvoice } from "@/lib/softdreams/validate";
+import { buildInvoiceBatch, validateInvoiceBatch } from "@/lib/softdreams/invoice-batch";
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
 import { softdreamsEndpoint } from "@/lib/softdreams/config.server";
 import { createAuthen } from "@/lib/softdreams/auth.server";
@@ -31,10 +30,12 @@ export async function POST(request: Request) {
   let headers: Headers;
   try {
     payload = JSON.parse(await readLimited(request.body));
-    const invoice = validateInvoice(payload.invoice);
+    const invoices = validateInvoiceBatch(payload.invoices ?? [payload.invoice]);
+    const invoice = invoices[0];
     headers = new Headers({ "Content-Type": "application/json", Accept: "application/json" });
     headers.set("Authentication", createAuthen(SOFTDREAMS_APIS.invoice.method));
-    payload = { XmlData: buildInvoice(invoice), Pattern: invoice.pattern, Serial: invoice.serial, Convert: invoice.convert };
+    payload = { XmlData: buildInvoiceBatch(invoices), Pattern: invoice.pattern, Serial: invoice.serial, Convert: invoice.convert };
+    if (Buffer.byteLength(JSON.stringify(payload)) > MAX_BYTES) throw new Error("Gói XML vượt giới hạn 2 MB. Hãy giảm số hóa đơn hoặc dòng hàng.");
   } catch (error) {
     return Response.json({ message: error instanceof Error ? error.message : "Request không hợp lệ." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }

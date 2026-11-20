@@ -28,8 +28,10 @@ import { InvoiceOptions, InvoiceAdvanced } from "./invoice-options";
 import { SpecialExtraFields } from "./special-extra-fields";
 import { StyledSelect } from "./styled-select";
 import { initialInvoice, buildInvoice, calculateInvoice, calculateProduct, createEmptyInvoice, VAT_RATES, FEATURES } from "@/lib/softdreams/invoice";
-import { validateInvoice, invoiceIssues, INVOICE_LIMITS } from "@/lib/softdreams/validate";
+import { invoiceIssues, INVOICE_LIMITS } from "@/lib/softdreams/validate";
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
+import { buildInvoiceBatch, validateInvoiceBatch, MAX_INVOICES_PER_REQUEST, SHARED_INVOICE_FIELDS } from "@/lib/softdreams/invoice-batch";
+import type { InvoiceInput } from "@/lib/softdreams/invoice";
 
 type TemplateId =
   | "invoice"
@@ -39,7 +41,7 @@ type TemplateId =
 type AuthType = "none" | "bearer" | "basic" | "apikey";
 const InvoiceValidationContext = createContext<Map<string, string[]>>(new Map());
 type XmlScope = "invoice" | "product" | "fee";
-type XmlSelection = { tag: string; scope: XmlScope; index?: number };
+type XmlSelection = { tag: string; scope: XmlScope; index?: number; invoiceIndex: number };
 const XML_TAG_NAMES = [
   "PayOrderOrgAddress", "BudgetaryRelationshipCode", "PayOrderOrgTaxCode", "PayOrderOrgName", "TaxFreeDeductions",
   "CusIdentification", "AmountInWords", "DiscountAmount", "VATRateOther", "TotalCharge", "LocationAddress",
@@ -105,6 +107,7 @@ function HighlightedXml({ text, selection }: { text: string; selection: XmlSelec
   let insideElementValue = false;
   let productCount = -1;
   let feeCount = -1;
+  let invoiceIndex = -1;
   let activeProduct: number | null = null;
   let activeFee: number | null = null;
 
@@ -125,6 +128,7 @@ function HighlightedXml({ text, selection }: { text: string; selection: XmlSelec
         const isClosingTag = /^<\//.test(segment);
         const isSelfClosingTag = /\/>$/.test(segment);
         const tagName = segment.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
+        if (tagName === "Invoice" && !isClosingTag) { invoiceIndex += 1; productCount = -1; feeCount = -1; }
         if (tagName === "Product") {
           if (isClosingTag) activeProduct = null;
           else { productCount += 1; activeProduct = productCount; }
@@ -136,7 +140,7 @@ function HighlightedXml({ text, selection }: { text: string; selection: XmlSelec
         const matchesScope = selection?.scope === "product" ? activeProduct === selection.index
           : selection?.scope === "fee" ? activeFee === selection.index
           : activeProduct === null && activeFee === null;
-        const isFocused = tagName === selection?.tag && matchesScope;
+        const isFocused = tagName === selection?.tag && matchesScope && invoiceIndex === selection?.invoiceIndex;
         if (isClosingTag) insideElementValue = false;
         else if (!isSelfClosingTag) insideElementValue = true;
 
@@ -158,18 +162,21 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
   const matches: Array<{ start: number; end: number; className: string }> = [];
   let productCount = -1;
   let feeCount = -1;
+  let invoiceIndex = -1;
   let activeProduct: number | null = null;
   let activeFee: number | null = null;
   const segments = xmlText.split(/(<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>)/g);
-  let xmlOffset = 0;
+  let serializedOffset = 0;
   let insideElementValue = false;
   for (const segment of segments) {
+    const serializedLength = JSON.stringify(segment).length - 2;
     const isTag = /^<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>$/.test(segment);
     let className: string | undefined;
     if (isTag) {
       const closing = /^<\//.test(segment);
       const selfClosing = /\/>$/.test(segment);
       const name = segment.match(/^<\/?([A-Za-z_][\w:.-]*)/)?.[1];
+      if (name === "Invoice" && !closing) { invoiceIndex += 1; productCount = -1; feeCount = -1; }
       if (name === "Product") {
         if (closing) activeProduct = null;
         else { productCount += 1; activeProduct = productCount; }
@@ -181,16 +188,16 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
       const matchesScope = selection?.scope === "product" ? activeProduct === selection.index
         : selection?.scope === "fee" ? activeFee === selection.index
         : activeProduct === null && activeFee === null;
-      className = selection?.tag === name && matchesScope ? "json-focus" : "raw-xml-tag";
+      className = selection?.tag === name && matchesScope && invoiceIndex === selection?.invoiceIndex ? "json-focus" : "raw-xml-tag";
       if (closing) insideElementValue = false;
       else if (!selfClosing) insideElementValue = true;
     } else if (insideElementValue && /\S/.test(segment)) className = "raw-xml-value";
     if (className) {
-      const start = xmlValueStart + JSON.stringify(xmlText.slice(0, xmlOffset)).length - 1;
-      const end = xmlValueStart + JSON.stringify(xmlText.slice(0, xmlOffset + segment.length)).length - 1;
+      const start = xmlValueStart + 1 + serializedOffset;
+      const end = start + serializedLength;
       matches.push({ start, end, className });
     }
-    xmlOffset += segment.length;
+    serializedOffset += serializedLength;
   }
   return matches;
 }
@@ -217,7 +224,22 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [secret, setSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [apiKeyName, setApiKeyName] = useState("x-api-key");
-  const [invoice, setInvoice] = useState(initialInvoice);
+  const [invoices, setInvoices] = useState<InvoiceInput[]>([initialInvoice]);
+  const [selectedInvoice, setSelectedInvoice] = useState(0);
+  const invoice = invoices[selectedInvoice];
+  function setInvoice(update: React.SetStateAction<InvoiceInput>) {
+    setInvoices((current) => {
+      const next = typeof update === "function" ? update(current[selectedInvoice]) : update;
+      return current.map((row, index) => index === selectedInvoice ? next : {
+        ...row, ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, next[key]])),
+        ...(next.specialInvoice !== row.specialInvoice ? { products: row.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) } : {}),
+        ...(next.profile === "receipt" && row.profile !== "receipt" ? {
+          vatRate: -1, vatRateOther: "", currency: "VND", vatAmountOverride: "",
+          products: row.products.map((product) => ({ ...product, vat: -1, vatRateOther: "", vatAmountOverride: "", feature: product.feature === "4" ? "4" : "1", ...(product.feature === "5" ? { extra: "" } : {}) })),
+        } : {}),
+      });
+    });
+  }
   const [adjustment, setAdjustment] = useState({
     originalIkey: "inv-original-001",
     reason: "Điều chỉnh thông tin hóa đơn",
@@ -238,12 +260,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showConfig, setShowConfig] = useState(false);
   const [prettyPreview, setPrettyPreview] = useState(false);
-  const [invoiceMode, setInvoiceMode] = useState<"single" | "multi">("multi");
+  const [invoiceModes, setInvoiceModes] = useState<Array<"single" | "multi">>(["multi"]);
+  const invoiceMode = invoiceModes[selectedInvoice] ?? "multi";
+  function setInvoiceMode(mode: "single" | "multi") { setInvoiceModes((current) => current.map((value, index) => index === selectedInvoice ? mode : value)); }
   const [focusedXml, setFocusedXml] = useState<XmlSelection | null>(null);
 
   const xmlBody = useMemo(
-    () => buildInvoice(invoice),
-    [invoice],
+    () => template === "invoice" ? buildInvoiceBatch(invoices) : buildInvoice(invoice),
+    [invoice, invoices, template],
   );
   const body = useMemo(() => {
     if (template === "invoice")
@@ -292,14 +316,22 @@ export function ApiSandbox({ domain }: { domain: string }) {
     return `${method} ${domain.replace(/\/+$/, "")}${apiPath}${headers.length ? `\n${headers.join("\n")}` : ""}${method !== "GET" ? `\n\n${requestBody}` : ""}`;
   }, [auth, method, domain, apiPath, body, apiKeyName, isInvoice, xmlBody, template]);
   const invoiceTotals = useMemo(() => calculateInvoice(invoice), [invoice]);
-  const formIssues = useMemo(() => invoiceIssues({ ...invoice, tax: invoice.tax.replace(/\s/g, "") }), [invoice]);
+  const batchIssues = useMemo(() => invoices.map((row) => {
+    const issues = invoiceIssues({ ...row, tax: row.tax.replace(/\s/g, "") });
+    if (row.ikey.trim() && invoices.filter((other) => other.ikey.trim() === row.ikey.trim()).length > 1) issues.push({ field: "ikey", message: "Ikey bị trùng với hóa đơn khác trong gói." });
+    return issues;
+  }), [invoices]);
+  const formIssues = batchIssues[selectedInvoice];
   const invoiceIssuesByField = useMemo(() => {
     const grouped = new Map<string, string[]>();
     for (const issue of formIssues) grouped.set(issue.field, [...(grouped.get(issue.field) ?? []), issue.message]);
     return grouped;
   }, [formIssues]);
   function clearForm() {
-    setInvoice(createEmptyInvoice());
+    setInvoices([createEmptyInvoice()]);
+    setInvoiceModes(["multi"]);
+    setSelectedInvoice(0);
+    setFocusedXml(null);
     setAdjustment({ originalIkey: "", reason: "" });
     setDigest({ taxCode: "", fromDate: "", toDate: "" });
     setInvoiceKeys("");
@@ -310,8 +342,31 @@ export function ApiSandbox({ domain }: { domain: string }) {
     setError("");
   }
 
+  function selectInvoice(index: number) {
+    setSelectedInvoice(index); setFocusedXml(null);
+    requestAnimationFrame(() => document.getElementById(`invoice-select-${index}`)?.scrollIntoView({ block: "nearest", inline: "nearest" }));
+  }
+  function addInvoice(copy = false) {
+    if (invoices.length >= MAX_INVOICES_PER_REQUEST || loading) return;
+    const next = copy ? structuredClone(invoice) : createEmptyInvoice();
+    for (const key of SHARED_INVOICE_FIELDS) Reflect.set(next, key, invoice[key]);
+    next.ikey = crypto.randomUUID();
+    // Reference and tax authority codes identify the original invoice and cannot be copied.
+    if (copy) { next.fkey = ""; next.taxAuthorityCode = ""; }
+    setInvoices((current) => [...current, next]);
+    setInvoiceModes((current) => [...current, copy ? invoiceMode : "multi"]);
+    selectInvoice(invoices.length);
+  }
+  function removeInvoice() {
+    if (invoices.length === 1 || loading) return;
+    setInvoices((current) => current.filter((_, index) => index !== selectedInvoice));
+    setInvoiceModes((current) => current.filter((_, index) => index !== selectedInvoice));
+    selectInvoice(Math.max(0, selectedInvoice - 1));
+  }
+
   function changeTemplate(id: TemplateId) {
     setTemplate(id);
+    setFocusedXml(null);
     setActiveTab("request");
     setResult(null);
     setError("");
@@ -360,12 +415,17 @@ export function ApiSandbox({ domain }: { domain: string }) {
     setResult(null);
     if (template === "invoice") {
       try {
-        validateInvoice(invoice);
+        const invalidIndex = batchIssues.findIndex((issues) => issues.length > 0);
+        if (invalidIndex >= 0) {
+          selectInvoice(invalidIndex);
+          throw new Error(`Hóa đơn ${invalidIndex + 1} có ${batchIssues[invalidIndex].length} lỗi. Sửa các trường được đánh dấu trước khi gửi cả gói.`);
+        }
+        validateInvoiceBatch(invoices);
         setLoading(true);
         const response = await fetch("/api/invoice-drafts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoice }),
+          body: JSON.stringify({ invoices }),
           signal: AbortSignal.timeout(35000),
         });
         const data = await response.json();
@@ -475,6 +535,8 @@ export function ApiSandbox({ domain }: { domain: string }) {
     const currentDate = responseDate(now);
     const pattern = invoice.pattern.trim().toUpperCase();
     const serial = invoice.serial.trim() || "SERIAL_SELECTED_BY_API";
+    const simulatedInvoices = invoices.map((invoice) => {
+      const invoiceTotals = calculateInvoice(invoice);
     const products = invoice.products.map((product, index) => {
       const values = calculateProduct(product);
       const feature = product.feature || (values.amount < 0 ? "3" : values.amount === 0 ? "4" : "1");
@@ -498,16 +560,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
         Total: isDiscount ? -Math.abs(values.total) : values.total,
       };
     });
-    const responseData = isInvoiceResponse
-      ? {
-          Status: 2,
-          Message: "Ok",
-          ErrorCode: 0,
-          Data: {
-            Pattern: pattern,
-            Serial: serial,
-            Ikeys: [invoice.ikey],
-            Invoices: [{
+      return {
               InvoiceStatus: 0,
               Buyer: invoice.buyer,
               TaxAmount: invoiceTotals.vat,
@@ -539,7 +592,18 @@ export function ApiSandbox({ domain }: { domain: string }) {
               ...(invoice.provinceName ? { ProvinceName: invoice.provinceName } : {}),
               ...(invoice.communeCode ? { CommuneCode: invoice.communeCode } : {}),
               ...(invoice.communeName ? { CommuneName: invoice.communeName } : {}),
-            }],
+            };
+    });
+    const responseData = isInvoiceResponse
+      ? {
+          Status: 2,
+          Message: "Ok",
+          ErrorCode: 0,
+          Data: {
+            Pattern: pattern,
+            Serial: serial,
+            Ikeys: invoices.map((row) => row.ikey),
+            Invoices: simulatedInvoices,
           },
         }
       : {
@@ -611,7 +675,8 @@ export function ApiSandbox({ domain }: { domain: string }) {
     if (!tag) { if (clearWhenUnmapped) setFocusedXml(null); return; }
     const scope = (field.dataset.xmlScope ?? "invoice") as XmlScope;
     const rawIndex = field.dataset.xmlIndex;
-    setFocusedXml({ tag, scope, ...(rawIndex !== undefined ? { index: Number(rawIndex) } : {}) });
+    const next = { tag, scope, invoiceIndex: template === "invoice" ? selectedInvoice : 0, ...(rawIndex !== undefined ? { index: Number(rawIndex) } : {}) };
+    setFocusedXml((current) => current?.tag === next.tag && current.scope === next.scope && current.invoiceIndex === next.invoiceIndex && current.index === next.index ? current : next);
   }
 
   return (
@@ -855,13 +920,15 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   {isInvoice && (
                     <button
                       className="subtle-button"
-                      onClick={() => setInvoice(initialInvoice)}
+                      disabled={loading}
+                      onClick={() => { setInvoice({ ...structuredClone(initialInvoice), ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, invoice[key]])), ikey: crypto.randomUUID() }); setInvoiceMode("multi"); }}
                     >
                       <WandSparkles size={14} /> Điền mẫu
                     </button>
                   )}
                   <button
                     className="subtle-button clear-button"
+                    disabled={loading}
                     onClick={clearForm}
                   >
                     <Trash2 size={14} /> Xóa hết
@@ -869,10 +936,35 @@ export function ApiSandbox({ domain }: { domain: string }) {
                 </div>
               </div>
 
+              <fieldset className="invoice-form-fields" disabled={loading}>
               {isInvoice ? (
                 <InvoiceValidationContext.Provider value={invoiceIssuesByField}>
                 <>
                   <InvoiceOptions value={invoice} onChange={setInvoice} issues={formIssues} />
+                  {template === "invoice" && <>
+                    <section className="invoice-batch-config" aria-label="Dải hóa đơn dùng chung">
+                      <h3>Dải hóa đơn · dùng chung cho cả gói</h3>
+                      <div className="form-grid">
+                        <Field validationField="pattern" label="Pattern · Ký hiệu hóa đơn" xmlTag={null}><input value={invoice.pattern} onChange={(event) => setInvoice({ ...invoice, pattern: event.target.value })} placeholder="1C26TTR" /></Field>
+                        <Field validationField="serial" label="Serial · Ký hiệu mẫu số" xmlTag={null}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Có thể để trống" /></Field>
+                      </div>
+                      <p>Pattern, Serial, Convert, bộ quy tắc và loại hàng hóa đặc trưng áp dụng cho tất cả hóa đơn trong gói.</p>
+                    </section>
+                    <section className="invoice-batch-manager" aria-label="Danh sách hóa đơn trong gói">
+                      <div className="invoice-batch-heading"><div><h3>Gói hóa đơn <span>{invoices.length}/{MAX_INVOICES_PER_REQUEST}</span></h3><p>Chọn một hóa đơn để nhập; dữ liệu được giữ khi chuyển hóa đơn.</p></div>
+                        <div className="invoice-batch-actions">
+                          <button type="button" className="subtle-button" disabled={invoices.length >= MAX_INVOICES_PER_REQUEST} onClick={() => addInvoice()}><Plus size={14} />Thêm hóa đơn</button>
+                          <button type="button" className="subtle-button" disabled={invoices.length >= MAX_INVOICES_PER_REQUEST} onClick={() => addInvoice(true)}><Copy size={14} />Nhân bản</button>
+                          <button type="button" className="subtle-button" disabled={invoices.length === 1} onClick={removeInvoice}><Trash2 size={14} />Xóa hóa đơn</button>
+                        </div>
+                      </div>
+                      <div className="invoice-batch-list" role="group" aria-label="Chọn hóa đơn">{invoices.map((row, index) => <button type="button" key={index} id={`invoice-select-${index}`} aria-pressed={selectedInvoice === index} data-invalid={batchIssues[index].length > 0 || undefined} onClick={() => selectInvoice(index)}>
+                        <strong>Hóa đơn {index + 1}</strong><span>{row.customer || row.buyer || "Chưa nhập khách hàng"}</span><small>{batchIssues[index].length ? `${batchIssues[index].length} lỗi cần sửa` : "Đã đủ dữ liệu tại form"}</small>
+                      </button>)}</div>
+                      <p className="invoice-batch-note" role="status">{batchIssues.filter((issues) => !issues.length).length}/{invoices.length} hóa đơn đủ dữ liệu tại form. Giới hạn công cụ: {MAX_INVOICES_PER_REQUEST} hóa đơn/gói, tối đa 2 MB. Một hóa đơn sai có thể khiến cả gói bị từ chối. Mỗi hóa đơn cần Ikey riêng.</p>
+                    </section>
+                    <h3 className="invoice-current-heading" id="invoice-editor">Đang nhập hóa đơn {selectedInvoice + 1} / {invoices.length}</h3>
+                  </>}
 {formIssues.length > 0 && <details className="invoice-form-issues" open><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><button type="button" onClick={() => {
   const field = document.getElementById(`invoice-field-${encodeURIComponent(issue.field)}`);
   let section = field?.closest("details");
@@ -961,7 +1053,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         </Field>
                       </>
                     )}
-                    <Field validationField="pattern"
+                    {template !== "invoice" && <><Field validationField="pattern"
                       label="Pattern · Ký hiệu hóa đơn"
                       help="Tự trim và viết hoa. Bỏ cả Pattern/Serial: API chọn dải khả dụng năm hiện tại; truyền một trường: API tìm theo trường đó."
                     >
@@ -992,6 +1084,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                         placeholder="1"
                       />
                     </Field>
+                    </>}
                     <Field validationField="ikey"
                       label="Ikey · Khóa tích hợp"
                       required
@@ -1410,6 +1503,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   </Field>
                 </div>
               )}
+              </fieldset>
             </section>
 
             {/* RIGHT — Config + Body + Response */}
@@ -1469,7 +1563,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       disabled={loading}
                     >
                       <Play size={14} fill="currentColor" />
-                      {loading ? "Đang gửi…" : "Gửi request"}
+                      {loading ? "Đang gửi…" : template === "invoice" ? `Gửi ${invoices.length} hóa đơn` : "Gửi request"}
                     </button>
                   </div>
 
@@ -1583,7 +1677,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     disabled={loading}
                   >
                     <Play size={14} fill="currentColor" />
-                    {loading ? "Đang gửi…" : "Gửi request"}
+                    {loading ? "Đang gửi…" : template === "invoice" ? `Gửi ${invoices.length} hóa đơn` : "Gửi request"}
                   </button>
                 </div>
               )}

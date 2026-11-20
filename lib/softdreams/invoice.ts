@@ -106,6 +106,10 @@ export function calculateInvoice(data: typeof initialInvoice) {
 }
 
 export function buildInvoice(data: typeof initialInvoice) {
+  return ["<Invoices>", buildInvoiceEntry(data), "</Invoices>"].join("\n");
+}
+
+export function buildInvoiceEntry(data: typeof initialInvoice) {
   const esc = (v: string | number) =>
     String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);
   const tag = (name: string, value: string | number) => `<${name}>${esc(value)}</${name}>`;
@@ -147,7 +151,6 @@ export function buildInvoice(data: typeof initialInvoice) {
 
 
   return [
-    "<Invoices>",
     "  <Inv>",
     "    <Invoice>",
     indent(3, tag("Ikey", data.ikey)),
@@ -206,7 +209,6 @@ export function buildInvoice(data: typeof initialInvoice) {
     ].join("\n")), indent(3, "</InvoiceFees>")] : []),
     "    </Invoice>",
     "  </Inv>",
-    "</Invoices>",
   ].filter(Boolean).join("\n");
 }
 
