@@ -44,7 +44,12 @@ export function toHtmlSingleVatInvoice(value: InvoiceInput): InvoiceInput {
 }
 
 export function buildHtmlInvoiceBatch(invoices: InvoiceInput[], modes: InvoiceVatMode[] = []) {
-  const escape = (value: string | number) => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char]!);
+  // Quotes are valid in XML text nodes. Escaping only XML markup characters keeps
+  // JSON stored in <Extra> readable while remaining safe XML.
+  const escape = (value: string | number) => String(value).replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[char]!);
+  const compactJson = (value: string) => {
+    try { return JSON.stringify(JSON.parse(value)); } catch { return value; }
+  };
   const tag = (name: string, value: string | number, depth = 3) => `${"  ".repeat(depth)}<${name}>${escape(value)}</${name}>`;
   const optional = (name: string, value: string | number) => String(value).trim() ? [tag(name, value)] : [];
   return ["<Invoices>", ...invoices.map((invoice, invoiceIndex) => {
@@ -59,7 +64,7 @@ export function buildHtmlInvoiceBatch(invoices: InvoiceInput[], modes: InvoiceVa
     "      <Products>", ...value.products.map((product, index) => [
       "        <Product>", tag("No", index + 1, 5), ...(product.feature ? [tag("Feature", product.feature, 5)] : []), tag("ProdName", product.name, 5),
       tag("Total", product.totalOverride, 5), ...(mode === "multi" ? [tag("VATRate", product.vat, 5), ...(product.vat === -3 ? [tag("VATRateOther", product.vatRateOther, 5)] : [])] : []), tag("VATAmount", product.vatAmountOverride, 5), tag("Amount", product.amountOverride, 5),
-      ...(product.extra ? [tag("Extra", product.extra, 5)] : []), "        </Product>",
+      ...(product.extra ? [tag("Extra", compactJson(product.extra), 5)] : []), "        </Product>",
     ].join("\n")), "      </Products>",
     tag("Total", value.totalOverride), tag("VATAmount", value.vatAmountOverride), ...(mode === "single" || value.vatRate === -5 ? [tag("VATRate", value.vatRate), ...(value.vatRate === -3 ? [tag("VATRateOther", value.vatRateOther)] : [])] : []), tag("Amount", value.amountOverride), tag("AmountInWords", value.amountInWords),
     ...optional("ListAttachNum", value.listAttachNum), ...optional("ListAttachDate", value.listAttachDate.split("-").reverse().join("/")),

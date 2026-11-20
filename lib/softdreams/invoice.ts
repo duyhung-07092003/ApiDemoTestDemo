@@ -111,7 +111,7 @@ export function buildInvoice(data: typeof initialInvoice) {
 
 export function buildInvoiceEntry(data: typeof initialInvoice) {
   const esc = (v: string | number) =>
-    String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);
+    String(v).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
   const tag = (name: string, value: string | number) => `<${name}>${esc(value)}</${name}>`;
   const cdata = (name: string, value: string) =>
     value ? `<${name}><![CDATA[${value.replace(/\]\]>/g, "]]]]><![CDATA[>")}]]></${name}>` : `<${name}></${name}>`;

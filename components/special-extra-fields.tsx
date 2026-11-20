@@ -34,6 +34,6 @@ export function SpecialExtraFields({ type, value, onChange, reference = false }:
       if (key === "TTTSan" && e.target.value !== "1") {
         for (const vehicleKey of ["MNSXuat", "TLTSDKy", "NSXuat", "TTMai", "TNHieu", "KLXe", "TTLVHCSuat", "TTai", "SCNgoi", "SBKSoat"]) delete next[vehicleKey];
       }
-      onChange(JSON.stringify(next, null, 2));
+      onChange(JSON.stringify(next));
     }} /></label>; })}</div>;
 }
