@@ -35,6 +35,7 @@ import type { InvoiceInput } from "@/lib/softdreams/invoice";
 import { ImportInvoiceForm } from "./import-invoice-form";
 import { InvoiceDocumentPreview } from "./invoice-document-preview";
 import { companyPreview, type CompanySimulation } from "@/lib/softdreams/company-preview";
+import type { XmlScope, XmlSelection } from "@/lib/softdreams/xml-selection";
 
 type TemplateId =
   | "invoice"
@@ -43,8 +44,6 @@ type TemplateId =
   | "lookup-invoices";
 type AuthType = "none" | "bearer" | "basic" | "apikey";
 const InvoiceValidationContext = createContext<Map<string, string[]>>(new Map());
-type XmlScope = "invoice" | "product" | "fee";
-type XmlSelection = { tag: string; scope: XmlScope; index?: number; invoiceIndex: number };
 const XML_TAG_NAMES = [
   "PayOrderOrgAddress", "BudgetaryRelationshipCode", "PayOrderOrgTaxCode", "PayOrderOrgName", "TaxFreeDeductions",
   "CusIdentification", "AmountInWords", "DiscountAmount", "VATRateOther", "TotalCharge", "LocationAddress",
@@ -148,7 +147,7 @@ function HighlightedXml({ text, selection }: { text: string; selection: XmlSelec
         else if (!isSelfClosingTag) insideElementValue = true;
 
         return (
-          <span className={`xml-tag${isFocused ? " xml-tag-focused" : ""}`} key={index}>
+          <span className={`xml-tag${isFocused ? " xml-tag-focused" : ""}`} data-xml-preview-tag={tagName} data-invoice-index={invoiceIndex} data-xml-preview-scope={activeProduct !== null ? "product" : activeFee !== null ? "fee" : "invoice"} data-xml-preview-index={activeProduct ?? activeFee ?? undefined} key={index}>
             {segment}
           </span>
         );
@@ -162,7 +161,7 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
   const serializedXml = JSON.stringify(xmlText);
   const xmlValueStart = requestText.indexOf(serializedXml, bodyStart);
   if (bodyStart < 2 || xmlValueStart < 0) return [];
-  const matches: Array<{ start: number; end: number; className: string }> = [];
+  const matches: Array<{ start: number; end: number; className: string; xmlSelection?: XmlSelection }> = [];
   let productCount = -1;
   let feeCount = -1;
   let invoiceIndex = -1;
@@ -175,6 +174,7 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
     const serializedLength = JSON.stringify(segment).length - 2;
     const isTag = /^<\/?[A-Za-z_][\w:.-]*(?:\s[^<>]*?)?\/?>$/.test(segment);
     let className: string | undefined;
+    let xmlSelection: XmlSelection | undefined;
     if (isTag) {
       const closing = /^<\//.test(segment);
       const selfClosing = /\/>$/.test(segment);
@@ -188,6 +188,7 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
         if (closing) activeFee = null;
         else { feeCount += 1; activeFee = feeCount; }
       }
+      if (name && invoiceIndex >= 0) xmlSelection = { tag: name, invoiceIndex, scope: activeProduct !== null ? "product" : activeFee !== null ? "fee" : "invoice", ...(activeProduct !== null || activeFee !== null ? { index: activeProduct ?? activeFee! } : {}) };
       const matchesScope = selection?.scope === "product" ? activeProduct === selection.index
         : selection?.scope === "fee" ? activeFee === selection.index
         : activeProduct === null && activeFee === null;
@@ -198,7 +199,7 @@ function findRawXmlHighlightRanges(requestText: string, xmlText: string, selecti
     if (className) {
       const start = xmlValueStart + 1 + serializedOffset;
       const end = start + serializedLength;
-      matches.push({ start, end, className });
+      matches.push({ start, end, className, xmlSelection });
     }
     serializedOffset += serializedLength;
   }
@@ -269,7 +270,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const simulatedCompanyReport = useMemo(() => companyPreview(invoice, companySimulation), [invoice, companySimulation]);
   function setInvoiceMode(mode: "single" | "multi") { setInvoiceModes((current) => current.map((value, index) => index === selectedInvoice ? mode : value)); }
   const [focusedXml, setFocusedXml] = useState<XmlSelection | null>(null);
-  const [explanationTag, setExplanationTag] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<XmlSelection | null>(null);
 
   const xmlBody = useMemo(
     () => template === "invoice" ? buildInvoiceBatch(invoices) : buildInvoice(invoice),
@@ -334,6 +335,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
     return grouped;
   }, [formIssues]);
   function clearForm() {
+    setExplanation(null);
     setInvoices([createEmptyInvoice()]);
     setInvoiceModes(["single"]);
     setCompanySimulation({ notValidate: false, skipVat8: false, from: "", to: "" });
@@ -372,6 +374,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   }
 
   function changeTemplate(id: TemplateId) {
+    setExplanation(null);
     setTemplate(id);
     setFocusedXml(null);
     setActiveTab("request");
@@ -976,9 +979,9 @@ export function ApiSandbox({ domain }: { domain: string }) {
   let section = field?.closest("details");
   while (section) { section.open = true; section = section.parentElement?.closest("details") ?? null; }
   field?.scrollIntoView({ behavior: "smooth", block: "center" });
-  field?.querySelector<HTMLElement>("input, textarea, button, [tabindex]")?.focus({ preventScroll: true });
+  field?.querySelector<HTMLElement>('input:not([type="hidden"]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
 }}><code>{issue.field}</code>: {issue.message}</button></li>)}</ul></details>}
-{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} mode={invoiceMode} onModeChange={setInvoiceMode} simulation={companySimulation} onSimulationChange={setCompanySimulation} explanationTag={explanationTag} onCloseExplanation={() => setExplanationTag(null)} /> : <><section
+{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} mode={invoiceMode} onModeChange={setInvoiceMode} simulation={companySimulation} onSimulationChange={setCompanySimulation} explanation={explanation?.invoiceIndex === selectedInvoice ? explanation : null} onCloseExplanation={() => { setExplanation(null); setFocusedXml(null); }} /> : <><section
                     className="tax-mode-section"
                     aria-label="Thiết lập mẫu thuế"
                     style={{ marginTop: 14 }}
@@ -1690,8 +1693,20 @@ export function ApiSandbox({ domain }: { domain: string }) {
 
               {/* Request body preview */}
               <section className="response-card" onClick={(event) => {
-                const tag = (event.target as Element).closest(".xml-tag, .raw-xml-tag")?.textContent?.match(/^<\/?(ArisingDate|Total|VATAmount|Amount|VATRate|AmountInWords)>$/)?.[1];
-                if (tag) setExplanationTag(tag);
+                if (template !== "invoice") return;
+                const node = (event.target as Element).closest<HTMLElement>("[data-xml-preview-tag]");
+                if (!node?.dataset.xmlPreviewTag) return;
+                const invoiceIndex = Number(node.dataset.invoiceIndex);
+                if (!Number.isInteger(invoiceIndex) || invoiceIndex < 0 || invoiceIndex >= invoices.length) return;
+                const next: XmlSelection = { tag: node.dataset.xmlPreviewTag, invoiceIndex, scope: node.dataset.xmlPreviewScope as XmlScope, ...(node.dataset.xmlPreviewIndex !== undefined ? { index: Number(node.dataset.xmlPreviewIndex) } : {}) };
+                selectInvoice(invoiceIndex); setExplanation(next); setFocusedXml(next);
+                requestAnimationFrame(() => {
+                  const field = Array.from(document.querySelectorAll<HTMLElement>(".form-panel [data-xml-tag]")).find((element) => element.dataset.xmlTag === next.tag && (element.dataset.xmlScope ?? "invoice") === next.scope && (next.index === undefined || Number(element.dataset.xmlIndex) === next.index));
+                  let details = field?.closest("details");
+                  while (details) { details.open = true; details = details.parentElement?.closest("details") ?? null; }
+                  field?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  field?.querySelector<HTMLElement>('input:not([type="hidden"]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
+                });
               }}>
                 <div className="response-top">
                   <div className="card-title">
@@ -1747,7 +1762,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                 {template === "invoice" && <div className="request-validation-summary">
                   <div className={`request-local-status ${batchIssues.some((issues) => issues.length) ? "needs-attention" : "ready"}`}><strong>{batchIssues.some((issues) => issues.length) ? `Cần sửa dữ liệu: ${batchIssues.filter((issues) => issues.length).length}/${invoices.length} hóa đơn có lỗi` : "Chưa phát hiện lỗi trong bộ quy tắc tại form"}</strong><p>Chưa gửi API. Chưa xác minh dải, trạng thái Ikey đã tồn tại, danh mục, cấu hình công ty hoặc request gửi đồng thời. Chỉ phản hồi thật mới xác nhận kết quả.</p></div>
                   {(companySimulation.notValidate || companySimulation.skipVat8 || companySimulation.from || companySimulation.to || simulatedCompanyReport.pendingVat8) && <details className="request-company-simulation" open><summary>Kết quả giả lập công ty · hóa đơn {selectedInvoice + 1}</summary><p>Bỏ qua {simulatedCompanyReport.skipped} lỗi trường; còn {simulatedCompanyReport.issues.length} lỗi trong phạm vi mô phỏng. Gửi thật vẫn kiểm tra dữ liệu đầy đủ, không gửi các công tắc này.</p>{simulatedCompanyReport.pendingVat8 && <p>Chưa đối chiếu thời hạn thuế 8%: cần nhập khoảng CheckVat8 giả lập.</p>}<ul>{simulatedCompanyReport.issues.map((issue, index) => <li key={index}><code>{issue.field}</code>: {issue.message}</li>)}</ul></details>}
-                  <p>XmlData là chuỗi XML trong body JSON. Header Authentication được sinh trên server. Bấm tên thẻ Total, VATAmount, Amount, VATRate, AmountInWords hoặc ArisingDate trong XML để đọc cách nhập ở bên trái. Hóa đơn xem trước chỉ minh họa bố cục; mẫu thật phụ thuộc dải đăng ký.</p>
+                  <p>XmlData là chuỗi XML trong body JSON. Header Authentication được sinh trên server. Bấm một thẻ XML để đến đúng ô nhập và đọc cách tính bên trái, kể cả thẻ nằm trong hóa đơn khác của gói. Hóa đơn xem trước chỉ minh họa bố cục; mẫu thật phụ thuộc dải đăng ký.</p>
                 </div>}
                 {activeTab === "invoice-preview" && template === "invoice" ? <InvoiceDocumentPreview value={invoice} index={selectedInvoice} /> : activeTab === "request" && isInvoice && prettyPreview ? (
                   <div className="formatted-request">

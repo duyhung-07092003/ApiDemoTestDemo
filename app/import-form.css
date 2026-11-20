@@ -1,8 +1,20 @@
 .import-content-form { color: var(--ui-text); }
 .import-content-form h3 { margin: 0; font-size: 17px; }
-.import-formula { padding: 14px; border: 1px solid var(--ui-accent-line); border-radius: 12px; background: var(--ui-soft); font-size: 14px; line-height: 1.6; }
+.import-formula { position: sticky; top: 8px; z-index: 2; padding: 14px; border: 1px solid var(--ui-accent-line); border-left: 4px solid var(--ui-solid); border-radius: 12px; background: var(--ui-surface); box-shadow: 0 4px 16px #00000012; font-size: 14px; line-height: 1.6; }
 .import-formula > button { float: right; margin-left: 10px; }
 .import-formula p { margin: 6px 0 0; }
+.import-formula-expression { padding: 7px 9px; background: var(--ui-input); border-radius: 8px; }
+.formula-matches { color: #15803d; font-weight: 700; }
+.formula-differs { color: var(--ui-accent); font-weight: 700; }
+.import-content-form .import-help-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: 5px; padding: 1px; color: var(--ui-accent); background: transparent; border: 0; border-radius: 50%; vertical-align: middle; cursor: pointer; }
+.import-help-toggle[aria-expanded="true"] { background: var(--ui-soft); box-shadow: 0 0 0 3px var(--ui-soft); }
+.import-field-help { padding: 9px 11px; background: var(--ui-input); border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-solid); border-radius: 8px; color: var(--ui-text); font-size: 13px; line-height: 1.6; }
+.import-field-help p { margin: 4px 0 0; color: var(--ui-muted); }
+.import-content-form .field[data-request-selected] > :is(input, .styled-select-trigger, .date-picker-trigger),
+.import-content-form .field[data-request-selected] > div > input { outline: 2px solid var(--ui-solid); outline-offset: 1px; }
+.import-content-form .field[data-xml-tag="AmountInWords"] { grid-column: 1 / -1; }
+.request-preview [data-xml-preview-tag] { cursor: pointer; }
+.request-preview [data-xml-preview-tag]:hover { background: #f9731638; border-radius: 3px; }
 .import-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ui-line); }
 .import-section-heading h4 { margin: 0; font-size: 16px; }
 .import-section-heading > .styled-select-trigger { max-width: 240px; }

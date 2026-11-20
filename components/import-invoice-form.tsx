@@ -9,44 +9,44 @@ import { SpecialExtraFields } from "./special-extra-fields";
 import { DateInput } from "./date-input";
 import { StyledSelect } from "./styled-select";
 import type { CompanySimulation } from "@/lib/softdreams/company-preview";
+import type { XmlSelection } from "@/lib/softdreams/xml-selection";
+import { invoiceFieldExplanation } from "@/lib/softdreams/invoice-field-explanation";
 
 type Issue = { field: string; message: string };
 type InvoiceTextKey = { [K in keyof InvoiceInput]: InvoiceInput[K] extends string ? K : never }[keyof InvoiceInput];
 const currencies = ["VND – đồng", "USD – đô la Mỹ", "EUR – Euro", "JPY – Yên", "GBP – bảng Anh", "SGD – đô la Singapore", "MYR – Ringgit Malaysia", "HKD – đô la Hồng Kông", "KRW – Won", "AUD – đô la Úc", "NOK – Krone Na Uy"];
 
-export function ImportInvoiceForm({ value, onChange, issues, mode, onModeChange, simulation, onSimulationChange, explanationTag, onCloseExplanation }: {
+export function ImportInvoiceForm({ value, onChange, issues, mode, onModeChange, simulation, onSimulationChange, explanation, onCloseExplanation }: {
   value: InvoiceInput; onChange: (value: InvoiceInput) => void; issues: Issue[];
   mode: "single" | "multi"; onModeChange: (mode: "single" | "multi") => void;
   simulation: CompanySimulation; onSimulationChange: (value: CompanySimulation) => void;
-  explanationTag: string | null; onCloseExplanation: () => void;
+  explanation: XmlSelection | null; onCloseExplanation: () => void;
 }) {
   const [requiredOnly, setRequiredOnly] = useState(false);
   const [location, setLocation] = useState(false);
   const [wordError, setWordError] = useState("");
+  const [openHelp, setOpenHelp] = useState<string | null>(null);
   const totals = calculateInvoice(value);
   const car = value.specialInvoice === "1";
   const needsBuyerDetails = value.profile !== "receipt" && (!!value.tax || car);
-  const explanations: Record<string, string> = {
-    ArisingDate: "Không có công thức, nhập trực tiếp. Ngày trống do API xác định; năm cần khớp Pattern.",
-    Total: "Dòng hàng: gợi ý ProdQuantity × ProdPrice − DiscountAmount. Hóa đơn: cộng Total theo Feature; khuyến mại/ghi chú không tính vào tổng, chiết khấu tính âm. Giá trị nhập riêng được ưu tiên.",
-    VATAmount: "Dòng hàng: gợi ý Total × thuế suất / 100. Hóa đơn: cộng tiền thuế theo Feature. API chỉ tự tính trong các nhánh điều kiện riêng; form gửi rõ số tiền đang hiển thị.",
-    Amount: "Dòng hàng: gợi ý Total + VATAmount. Hóa đơn: cộng Amount các dòng theo Feature hoặc dùng tổng đã nhập riêng.",
-    VATRate: "Mẫu một thuế suất: thay đổi VATRate hóa đơn để áp dụng cho tất cả dòng; thuế -3 cần VATRateOther. Thuế suất là mã theo nghiệp vụ, không phải mọi mã âm đều là phần trăm.",
-    AmountInWords: "Chuỗi số tiền viết bằng chữ được gửi nguyên giá trị. Nút Điền theo Amount chỉ hỗ trợ số nguyên VND.",
-  };
+  const selectedExplanation = explanation ? invoiceFieldExplanation(value, explanation) : null;
+  const format = (next: string | number) => typeof next === "number" ? Number.isFinite(next) ? new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 4 }).format(next) : "—" : next || "(chưa nhập)";
   const update = <K extends keyof InvoiceInput>(key: K, next: InvoiceInput[K]) => onChange({ ...value, [key]: next });
   const productUpdate = (index: number, change: Partial<InvoiceInput["products"][number]>) => update("products", value.products.map((row, i) => i === index ? { ...row, ...change } : row));
-  function field(key: string, tag: string, label: string, required: boolean, help: string, control: ReactNode, optional = false, index?: number) {
+  function field(key: string, tag: string, label: string, required: boolean, help: string, control: ReactNode, _optional = false, index?: number) {
     const messages = issues.filter((issue) => issue.field === key);
-    if (requiredOnly && optional && !required && !messages.length) return null;
-    return <label key={key} id={`invoice-field-${encodeURIComponent(key)}`} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={tag} data-xml-scope={index === undefined ? "invoice" : "product"} data-xml-index={index}>
-      <span><span className="field-label-text"><code>{tag}</code> · {label}</span>{required && <b className="required-star">*</b>}<span className="help-tip" tabIndex={0} aria-label={help}><CircleHelp size={14} /><span role="tooltip">{help}</span></span></span>
-      {control}{messages.length > 0 && <div className="field-validation-messages">{messages.map((message, i) => <small className="field-validation-message" key={i}>{message.message}</small>)}</div>}
+    const selected = explanation?.tag === tag && explanation.scope === (index === undefined ? "invoice" : "product") && explanation.index === index;
+    const buyerChoice = index === undefined && value.profile !== "receipt" && ["CusName", "Buyer"].includes(tag);
+    if (requiredOnly && !required && !buyerChoice && !messages.length && !selected) return null;
+    const helpId = `import-help-${encodeURIComponent(key)}`;
+    return <label key={key} id={`invoice-field-${encodeURIComponent(key)}`} className="field" data-request-selected={selected || undefined} data-invalid={messages.length > 0 || undefined} data-xml-tag={tag} data-xml-scope={index === undefined ? "invoice" : "product"} data-xml-index={index}>
+      <span><span className="field-label-text"><code>{tag}</code> · {label}</span>{required && <b className="required-star">*</b>}<button type="button" className="import-help-toggle" aria-label={`Giải thích ${tag}`} aria-expanded={openHelp === key} aria-controls={helpId} onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpenHelp(openHelp === key ? null : key); }}><CircleHelp size={14} /></button></span>
+      {control}{(messages.length > 0 || openHelp === key) && <div className="field-validation-messages">{openHelp === key && <div id={helpId} className="import-field-help"><strong>{tag} · {label}</strong><p>{help}</p></div>}{messages.map((message, i) => <small className="field-validation-message" key={i}>{message.message}</small>)}</div>}
     </label>;
   }
   const input = (key: InvoiceTextKey, maxLength?: number) => <input value={value[key]} maxLength={maxLength} onChange={(event) => update(key, event.target.value)} />;
   return <div className="import-content-form">
-    {explanationTag && explanations[explanationTag] && <aside className="import-formula" role="status"><button type="button" className="subtle-button" aria-label="Đóng giải thích" onClick={onCloseExplanation}>×</button><strong>{explanationTag} · Cách nhập và công thức gợi ý</strong><p>{explanations[explanationTag]}</p></aside>}
+    {selectedExplanation && <aside className="import-formula" role="status"><button type="button" className="subtle-button" aria-label="Đóng giải thích" onClick={onCloseExplanation}>×</button><strong>{selectedExplanation.field} · {selectedExplanation.where}</strong><p className="import-formula-expression">{selectedExplanation.formula}</p><p>Đang nhập: <b>{format(selectedExplanation.actual)}</b>{selectedExplanation.expected !== undefined && <> · Đối chiếu: <b>{format(selectedExplanation.expected)}</b></>}</p>{selectedExplanation.matches !== undefined && <p className={selectedExplanation.matches ? "formula-matches" : "formula-differs"}>{selectedExplanation.matches ? "Khớp công thức gợi ý" : "Lệch so với công thức gợi ý · kiểm tra lại chứng từ"}</p>}<p>{selectedExplanation.note}</p></aside>}
     <section className="import-tax-description">
       <div className="import-section-heading"><h3>Kiểu mẫu: {mode === "single" ? "một thuế suất" : "nhiều thuế suất"}</h3><StyledSelect value={mode} onChange={(next) => {
         onModeChange(next as "single" | "multi");
@@ -67,6 +67,7 @@ export function ImportInvoiceForm({ value, onChange, issues, mode, onModeChange,
       {field("address", "CusAddress", "Địa chỉ người mua", needsBuyerDetails, "Bắt buộc khi có mã số thuế hoặc dải mua bán xe với mẫu TT78. Tối đa 400 ký tự.", input("address", 400), true)}
       {field("date", "ArisingDate", "Ngày phát sinh (trống = hôm nay)", false, "Không có công thức, nhập trực tiếp. XML dùng dd/MM/yyyy; năm phải khớp Pattern. Trống: API lấy ngày hiện tại.", <DateInput value={value.date} onChange={(event) => update("date", event.target.value)} />, true)}
       {field("currency", "CurrencyUnit", "Đơn vị tiền tệ", value.profile !== "receipt", "Chọn đồng tiền; biên lai chỉ dùng VND. Việc làm tròn phụ thuộc CurrencyUnit và cấu hình API.", <StyledSelect value={value.currency} onChange={(currency) => update("currency", currency)} options={currencies.map((label) => ({ value: label.slice(0, 3), label }))} />)}
+      {(value.currency !== "VND" || value.exchangeRate || issues.some((issue) => issue.field === "exchangeRate")) && field("exchangeRate", "ExchangeRate", "Tỷ giá so với VND", false, "Nhập tỷ giá trực tiếp theo chứng từ. Form không tự quy đổi toàn bộ số tiền khi thay đổi tỷ giá.", input("exchangeRate"), true)}
       {field("totalOverride", "Total", "Tổng tiền trước thuế", true, "Gợi ý: tổng Total của các dòng hàng, có xét Feature. Có thể nhập riêng theo chứng từ.", <input type="number" step="any" value={value.totalOverride === "" ? totals.subtotal : value.totalOverride} onChange={(event) => update("totalOverride", event.target.value)} />)}
       {field("vatAmountOverride", "VATAmount", "Tổng tiền thuế GTGT", false, "Gợi ý: tổng VATAmount của các dòng. Có thể nhập riêng; không giả định API tự sửa mọi phép tính.", <input type="number" step="any" value={value.vatAmountOverride === "" ? totals.calculatedVat : value.vatAmountOverride} onChange={(event) => update("vatAmountOverride", event.target.value)} />, true)}
       {field("vatRate", "VATRate", "Thuế suất hóa đơn (các dòng lấy theo)", true, "Mẫu một thuế: thay đổi tại đây để áp dụng cho tất cả dòng. Thuế -3 cần VATRateOther; -5 cần toàn hóa đơn cùng CTTC.", <StyledSelect value={value.vatRate} onChange={(next) => {
@@ -113,7 +114,7 @@ export function ImportInvoiceForm({ value, onChange, issues, mode, onModeChange,
     </div></details>
     <details className="import-optional" open={location || !!value.locationCode || !!value.locationName || !!value.locationAddress || undefined}><summary>Địa điểm kinh doanh · 3 trường tùy chọn</summary><label className="import-inline-check"><input type="checkbox" checked={location || !!value.locationCode || !!value.locationName || !!value.locationAddress} onChange={(event) => { setLocation(event.target.checked); if (!event.target.checked) onChange({ ...value, locationCode: "", locationName: "", locationAddress: "" }); }} />Gửi địa điểm kinh doanh</label><p>Cả ba trống: API có thể tự điền nếu công ty đã cấu hình. Không tự suy địa điểm từ form.</p>{(location || value.locationCode || value.locationName || value.locationAddress) && <div className="form-grid">{([ ["locationCode", "LocationCode", "Mã địa điểm kinh doanh"], ["locationName", "LocationName", "Tên địa điểm kinh doanh"], ["locationAddress", "LocationAddress", "Địa chỉ địa điểm kinh doanh"] ] as const).map(([key, tag, label]) => field(key, tag, label, false, key === "locationCode" ? "Tối đa 5 ký tự." : "Tối đa 400 ký tự. LocationName chỉ được lưu khi có LocationCode.", input(key)))}</div>}</details>
     <details className="import-optional"><summary>Thông tin hóa đơn tùy chọn · ngân hàng, email, cửa hàng và chiết khấu</summary><div className="form-grid">{([
-      ["fkey", "Fkey", "Khóa tham chiếu"], ["customerCode", "CusCode", "Mã khách hàng"], ["bankName", "CusBankName", "Ngân hàng"], ["bankNo", "CusBankNo", "Số tài khoản"], ["email", "Email", "Email nhận thông báo"], ["customerEmails", "CusEmails", "Danh sách email"], ["emailCC", "EmailCC", "Email CC"], ["passportNo", "PassportNo", "Hộ chiếu"], ["storeCode", "StoreCode", "Mã cửa hàng"], ["storeName", "StoreName", "Tên cửa hàng"], ["exchangeRate", "ExchangeRate", "Tỷ giá"],
+      ["fkey", "Fkey", "Khóa tham chiếu"], ["customerCode", "CusCode", "Mã khách hàng"], ["bankName", "CusBankName", "Ngân hàng"], ["bankNo", "CusBankNo", "Số tài khoản"], ["email", "Email", "Email nhận thông báo"], ["customerEmails", "CusEmails", "Danh sách email"], ["emailCC", "EmailCC", "Email CC"], ["passportNo", "PassportNo", "Hộ chiếu"], ["storeCode", "StoreCode", "Mã cửa hàng"], ["storeName", "StoreName", "Tên cửa hàng"],
     ] as const).map(([key, tag, label]) => field(key, tag, label, false, "Trường tùy chọn. Không nhập thì giữ rỗng; kiểm tra độ dài và định dạng trước khi gửi.", input(key)))}
       {field("discountAmount", "DiscountAmount", "Tổng chiết khấu", false, "Nhập trực tiếp. Không tự đổi Total/Amount đã nhập riêng.", <input type="number" step="any" value={value.discountAmount} onChange={(event) => update("discountAmount", Number(event.target.value))} />)}
     </div></details>

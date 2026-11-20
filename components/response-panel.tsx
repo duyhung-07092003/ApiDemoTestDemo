@@ -2,12 +2,13 @@
 
 import { Check, Code2, FileWarning, LoaderCircle } from 'lucide-react'
 import { Fragment, type ReactNode } from 'react'
+import type { XmlSelection } from '@/lib/softdreams/xml-selection'
 
 type Result = { status: number; statusText: string; duration: number; size: number; headers: Record<string, string>; body: string; ok: boolean; simulated?: boolean } | null
 
 const jsonTokenPattern = /("(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b)/g
 
-export function HighlightedJson({ text, highlightRanges = [], displayNewlinesRange }: { text: string; highlightRanges?: Array<{ start: number; end: number; className?: string }>; displayNewlinesRange?: { start: number; end: number } }) {
+export function HighlightedJson({ text, highlightRanges = [], displayNewlinesRange }: { text: string; highlightRanges?: Array<{ start: number; end: number; className?: string; xmlSelection?: XmlSelection }>; displayNewlinesRange?: { start: number; end: number } }) {
   let offset = 0;
   const displayText = (start: number, end: number) => {
     const value = text.slice(start, end);
@@ -35,7 +36,7 @@ export function HighlightedJson({ text, highlightRanges = [], displayNewlinesRan
       const start = Math.max(range.start, tokenStart);
       const end = Math.min(range.end, tokenStart + token.length);
       if (start > cursor) pieces.push(className ? <span className={className} key={`before-${cursor}`}>{displayText(cursor, start)}</span> : displayText(cursor, start));
-      if (end > Math.max(cursor, start)) pieces.push(<span className={range.className ?? "json-focus"} key={`focus-${start}`}>{displayText(Math.max(cursor, start), end)}</span>);
+      if (end > Math.max(cursor, start)) pieces.push(<span className={range.className ?? "json-focus"} data-xml-preview-tag={range.xmlSelection?.tag} data-invoice-index={range.xmlSelection?.invoiceIndex} data-xml-preview-scope={range.xmlSelection?.scope} data-xml-preview-index={range.xmlSelection?.index} key={`focus-${start}`}>{displayText(Math.max(cursor, start), end)}</span>);
       cursor = Math.max(cursor, end);
     }
     const tokenEnd = tokenStart + token.length;
