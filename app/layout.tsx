@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import './sandbox-theme.css'
 
 export const metadata: Metadata = {
   title: 'RequestLab — API Request Sandbox',
@@ -26,8 +27,8 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'dark',
-  themeColor: '#0a0b0e',
+  colorScheme: 'light dark',
+  themeColor: '#f5f5f5',
 }
 
 export default function RootLayout({

@@ -1,0 +1,103 @@
+/* White and neutral gray surfaces, orange actions, dark request inspector. */
+:root {
+  color-scheme: light;
+  --background: #f5f5f5;
+  --foreground: #171717;
+  --primary: #ff7a22;
+  --primary-foreground: #fff;
+  --ring: #f97316;
+  --ui-page: #f5f5f5;
+  --ui-surface: #fff;
+  --ui-input: #f5f5f5;
+  --ui-line: #e5e7eb;
+  --ui-text: #171717;
+  --ui-muted: #64748b;
+  --ui-accent: #c2410c;
+  --ui-solid: #ff7a22;
+  --ui-soft: #fff3e9;
+  --ui-accent-line: #fed7aa;
+  --ui-focus: #f9731626;
+}
+:root:has(.sandbox-shell[data-theme="dark"]) {
+  color-scheme: dark;
+  --background: #151719;
+  --foreground: #f1f2f4;
+  --ui-page: #151719;
+  --ui-surface: #1d2024;
+  --ui-input: #24282d;
+  --ui-line: #383e46;
+  --ui-text: #f1f2f4;
+  --ui-muted: #a4afbf;
+  --ui-accent: #fdba74;
+  --ui-soft: #39281d;
+  --ui-accent-line: #7c4827;
+}
+.sandbox-shell[data-theme] { color: var(--ui-text); background: var(--ui-page); }
+.sandbox-shell[data-theme] :is(.sidebar, .topbar, .form-panel, .config-card, .response-card, .compact-send-bar, .api-picker, .api-picker-options, .template-card, .product-row) { color: var(--ui-text); background: var(--ui-surface); border-color: var(--ui-line); box-shadow: none; }
+.sandbox-shell[data-theme] .topbar { border-bottom: 3px solid var(--ui-solid); }
+.sandbox-shell[data-theme] :is(.workspace-switch, .status-card, .tax-mode-section, .invoice-summary, .invoice-options, .product-list, .invoice-extra-field, .invoice-batch-config, .invoice-batch-manager) { background: var(--ui-input); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] :is(.page-heading h1, .section-top h2, .card-title h2, .brand, .workspace-copy strong, .profile b, .product-heading strong, .invoice-summary-heading strong, .form-section-label, .invoice-options h3, .invoice-options h4, .invoice-extra-field > strong, .invoice-batch-config h3, .invoice-batch-heading h3) { color: var(--ui-text); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] :is(.page-heading p, .section-top p, .card-title p, .breadcrumbs, .workspace-copy small, .profile small, .status-card p, .invoice-options > p, .invoice-rule-note, .invoice-batch-note, .invoice-batch-config p, .invoice-batch-heading p, .extra-key-fields > p, .tax-mode-header > span) { color: var(--ui-muted); }
+.sandbox-shell[data-theme] :is(.brand-soft, .eyebrow, .template-check, .api-option-check, .api-picker, .footer-dot, .route-preview code) { color: var(--ui-accent); }
+.sandbox-shell[data-theme] :is(.brand-mark, .workspace-avatar, .profile-avatar, .avatar-small, .environment, .template-icon, .step-number, .empty-icon, .api-picker-icon, .api-option-icon, .invoice-batch-heading h3 span) { color: var(--ui-accent); background: var(--ui-soft); border-color: var(--ui-accent-line); }
+.sandbox-shell[data-theme] .side-link { color: var(--ui-muted); }
+.sandbox-shell[data-theme] :is(.side-link.selected, .template-card.active, .api-option.active) { color: var(--ui-accent); background: var(--ui-soft); border-color: var(--ui-accent-line); box-shadow: none; }
+.sandbox-shell[data-theme] .side-link.selected svg { color: var(--ui-accent); }
+.sandbox-shell[data-theme] .side-dot { background: var(--ui-solid); }
+.sandbox-shell[data-theme] :is(.template-card:hover, .api-option:hover, .api-option:focus-visible) { background: var(--ui-soft); border-color: var(--ui-accent-line); }
+.sandbox-shell[data-theme] :is(.api-picker-label, .api-option, .api-option-meta strong) { color: var(--ui-text); }
+.sandbox-shell[data-theme] .api-option-meta small { color: var(--ui-muted); }
+.sandbox-shell[data-theme] :is(.field > span, .field-label, .url-field > label, .config-field > label) { color: var(--ui-text); }
+.sandbox-shell[data-theme] :is(.field input, .field select, .url-field input, .config-field input, .config-field select, .header-row input, .body-editor, .date-picker-trigger, .styled-select-trigger) { color: var(--ui-text); background: var(--ui-input); border-color: var(--ui-line); caret-color: var(--ui-solid); }
+.sandbox-shell[data-theme] :is(.field input, .url-field input, .body-editor)::placeholder { color: var(--ui-muted); }
+.sandbox-shell[data-theme] :is(.field input, .field select, .url-field input, .config-field input, .config-field select, .body-editor):focus,
+.sandbox-shell[data-theme] :is(.date-picker-trigger, .styled-select-trigger):is(:focus-visible, [data-popup-open]) { background: var(--ui-surface); border-color: var(--ui-solid); box-shadow: 0 0 0 3px var(--ui-focus); outline: none; }
+.sandbox-shell[data-theme] .field[data-invalid] :is(input, select, .styled-select-trigger, .date-picker-trigger) { border-color: #ef4444; }
+.sandbox-shell[data-theme] :is(.date-picker-trigger > svg, .help-tip) { color: var(--ui-accent); }
+.sandbox-shell[data-theme] .send-button { color: #fff; background: var(--ui-solid); border-color: var(--ui-solid); box-shadow: none; }
+.sandbox-shell[data-theme] .send-button:hover:not(:disabled) { background: #ea580c; border-color: #ea580c; filter: none; }
+.sandbox-shell[data-theme] :is(.method-badge-top.post, .method-badge-lg.post, .method-badge-sm.post) { color: #fff; background: var(--ui-solid); border-color: var(--ui-solid); }
+.sandbox-shell[data-theme] :is(.subtle-button, .copy-button, .config-toggle-label) { color: var(--ui-text); background: var(--ui-surface); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] :is(.subtle-button:hover, .copy-button:hover) { color: var(--ui-accent); background: var(--ui-soft); border-color: var(--ui-accent-line); }
+.sandbox-shell[data-theme] .tax-mode-tabs { background: var(--ui-surface); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] .tax-mode-tabs button { color: var(--ui-muted); }
+.sandbox-shell[data-theme] .tax-mode-tabs button.active { color: #fff; background: var(--ui-solid); border-color: var(--ui-solid); box-shadow: none; }
+.sandbox-shell[data-theme] .result-tabs { background: var(--ui-surface); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] .result-tabs > button:not(.copy-button) { color: var(--ui-muted); }
+.sandbox-shell[data-theme] .result-tabs > button[aria-selected="true"] { color: #fff; background: var(--ui-solid); border-bottom-color: var(--ui-solid); }
+.sandbox-shell[data-theme] .invoice-batch-list button { color: var(--ui-text); background: var(--ui-surface); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] .invoice-batch-list button[aria-pressed="true"] { color: var(--ui-accent); background: var(--ui-soft); border-color: var(--ui-solid); box-shadow: 0 0 0 1px var(--ui-solid); }
+.sandbox-shell[data-theme] .invoice-current-heading { color: var(--ui-accent); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] :is(.invoice-options > summary, .product-advanced > summary, .response-header code) { color: var(--ui-accent); }
+.sandbox-shell[data-theme] .help-tip:focus-visible { outline: 2px solid var(--ui-solid); outline-offset: 2px; }
+.sandbox-shell[data-theme] button:focus-visible { outline-color: var(--ui-solid); }
+
+/* Keep the code inspector dark in both themes, as in the reference. */
+.sandbox-shell[data-theme] :is(.request-preview, .response-code) { color: #e5e7eb; background: #101623; }
+.sandbox-shell[data-theme] .request-metadata { color: #e5e7eb; }
+.sandbox-shell[data-theme] :is(.response-body-heading, .response-footer) { color: var(--ui-muted); background: var(--ui-input); border-color: var(--ui-line); }
+.sandbox-shell[data-theme] :is(.request-preview, .response-code) .json-key { color: #60a5fa; font-weight: 650; }
+.sandbox-shell[data-theme] :is(.request-preview, .response-code) .json-string { color: #86efac; }
+.sandbox-shell[data-theme] :is(.request-preview, .response-code) .json-number { color: #fdba74; }
+.sandbox-shell[data-theme] :is(.request-preview, .response-code) .json-literal { color: #fcd34d; }
+.sandbox-shell[data-theme] .request-preview :is(.xml-tag, .raw-xml-tag) { color: #60a5fa; font-weight: 650; }
+.sandbox-shell[data-theme] .request-preview :is(.xml-value, .raw-xml-value) { color: #86efac; font-weight: 500; }
+.sandbox-shell[data-theme] .request-preview :is(.xml-tag.xml-tag-focused, .json-focus) { color: #fff7ed; background: #6b3516; outline: 1px solid #fb923c; box-shadow: 0 0 0 2px #fb923c30; }
+
+/* Dropdowns and the calendar render in portals outside the application shell. */
+:root .styled-select-trigger[data-popup-open] { border-color: var(--ui-solid); box-shadow: 0 0 0 3px var(--ui-focus); }
+:root .styled-select-popup { color: var(--ui-text); background: var(--ui-surface); border-color: var(--ui-line); }
+:root .styled-select-item[data-highlighted] { color: var(--ui-accent); background: var(--ui-soft); }
+:root .styled-select-check { color: var(--ui-accent); }
+:root:has(.sandbox-shell[data-theme]) .date-picker-popup { --date-bg: var(--ui-surface); --date-text: var(--ui-text); --date-muted: var(--ui-muted); --date-line: var(--ui-line); --date-hover: var(--ui-soft); }
+:root:has(.sandbox-shell[data-theme]) :is(.date-picker-days button[data-today], .date-picker-footer button) { color: var(--ui-accent); border-color: var(--ui-accent-line); }
+:root:has(.sandbox-shell[data-theme]) .date-picker-days button[data-selected] { color: #fff; background: var(--ui-solid); border-color: var(--ui-solid); box-shadow: 0 3px 8px #f9731630; }
+:root:has(.sandbox-shell[data-theme]) .date-picker-days button:hover:not(:disabled):not([data-selected]) { color: var(--ui-accent); background: var(--ui-soft); }
+:root:has(.sandbox-shell[data-theme]) .date-picker-heading > button:hover { color: var(--ui-accent); }
+:root:has(.sandbox-shell[data-theme]) .date-picker-period .styled-select-trigger { color: var(--ui-text); background: var(--ui-soft); }
+:root:has(.sandbox-shell[data-theme]) .date-picker-popup button:focus-visible { outline-color: var(--ui-solid); }
+.sandbox-shell[data-theme] .xml-workspace {
+  --xml-surface: var(--ui-surface); --xml-subtle: var(--ui-input); --xml-editor: var(--ui-input);
+  --xml-line: var(--ui-line); --xml-text: var(--ui-text); --xml-muted: var(--ui-muted);
+  --xml-accent: var(--ui-accent); --xml-accent-bg: var(--ui-soft); --xml-accent-line: var(--ui-accent-line);
+}
