@@ -784,7 +784,7 @@ button, input, select, textarea { font-family: "Times New Roman", Times, serif; 
 
 /* Share label height within each visual row instead of reserving two lines everywhere. */
 @supports (grid-template-rows: subgrid) {
-  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field {
+  :is(.form-grid, .product-row, .invoice-summary) > .field {
     display: grid;
     grid-row: span 3;
     grid-template-rows: subgrid;
@@ -792,40 +792,32 @@ button, input, select, textarea { font-family: "Times New Roman", Times, serif; 
     align-self: stretch;
     align-content: start;
   }
-  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field > span:first-child {
+  :is(.form-grid, .product-row, .invoice-summary) > .field > span:first-child {
     grid-row: 1;
     align-self: end;
     margin-bottom: 0;
   }
-  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field > :nth-child(2) {
+  :is(.form-grid, .product-row, .invoice-summary) > .field > :nth-child(2) {
     grid-row: 2;
     align-self: start;
   }
-  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field > .field-validation-messages {
+  :is(.form-grid, .product-row, .invoice-summary) > .field > .field-validation-messages {
     grid-row: 3;
     align-self: start;
   }
 }
 .special-extra-fields > .field {
-  display: grid;
-  grid-row: auto;
-  grid-template-rows: 66px 44px;
-  row-gap: 7px;
-  align-self: start;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
 }
 .special-extra-fields > .field > span:first-child {
-  grid-row: 1;
-  align-self: start;
-  margin: 0;
+  margin: 0 0 7px;
   overflow-wrap: anywhere;
 }
 .special-extra-fields > .field > :nth-child(2) {
-  grid-row: 2;
-  align-self: start;
-}
-@media (max-width: 640px) {
-  .special-extra-fields > .field { grid-template-rows: auto 44px; }
+  width: 100%;
+  margin-top: auto;
 }
 .field-validation-messages { display: grid; gap: 4px; min-width: 0; }
 .sandbox-shell .field input:not([type="checkbox"]):not([type="radio"]),
