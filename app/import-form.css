@@ -54,6 +54,10 @@
 .import-unsupported-note { margin-top: 16px; padding: 8px 0; color: var(--ui-muted); font-size: 12px; }
 .import-unsupported-note summary { cursor: pointer; }
 .invoice-issues-popup { position: fixed; z-index: 80; right: 20px; bottom: 20px; display: flex; flex-direction: column; width: min(390px, calc(100vw - 32px)); max-height: min(60dvh, 560px); color: var(--ui-text); background: var(--ui-surface); border: 1px solid var(--ui-accent-line); border-top: 4px solid var(--ui-solid); border-radius: 16px; box-shadow: 0 12px 48px #00000024; overflow: hidden; }
+.invoice-issues-popup-collapsed { position: fixed; z-index: 80; right: 20px; bottom: 20px; display: inline-grid; place-items: center; width: 56px; height: 56px; padding: 0; color: #fff; background: #dc2626; border: 3px solid var(--ui-surface); border-radius: 50%; box-shadow: 0 10px 30px #991b1b4d; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.invoice-issues-popup-collapsed:hover { transform: translateY(-2px); box-shadow: 0 14px 34px #991b1b59; }
+.invoice-issues-popup-collapsed > span { position: absolute; top: -7px; right: -7px; display: inline-grid; place-items: center; min-width: 25px; height: 25px; padding: 0 5px; color: #fff; background: #7f1d1d; border: 2px solid var(--ui-surface); border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1; }
+.invoice-issues-popup-collapsed:focus-visible { outline: 3px solid #fca5a5; outline-offset: 3px; }
 .invoice-issues-popup-heading { display: flex; flex-shrink: 0; gap: 10px; align-items: center; padding: 14px 16px 10px; background: var(--ui-soft); }
 .invoice-issues-popup-heading > svg { flex-shrink: 0; color: var(--ui-accent); }
 .invoice-issues-popup-heading > div { flex: 1; min-width: 0; }
@@ -78,6 +82,7 @@
 .invoice-issues-popup footer > button { display: inline-flex; flex-shrink: 0; align-items: center; gap: 5px; padding: 8px 10px; border: 0; border-radius: 8px; color: #fff; background: var(--ui-solid); font: inherit; font-size: 12px; cursor: pointer; }
 @media (max-width: 900px) {
   .invoice-issues-popup { right: 12px; bottom: 12px; max-height: 35dvh; }
+  .invoice-issues-popup-collapsed { right: 12px; bottom: 12px; }
   :root:has(.invoice-issues-popup) .content { padding-bottom: 38dvh; }
 }
 @media (max-width: 640px) {
