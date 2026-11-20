@@ -6,6 +6,8 @@ import {
   Braces,
   Check,
   ChevronDown,
+  CircleAlert,
+  CircleCheckBig,
   CircleHelp,
   Clock3,
   Copy,
@@ -273,6 +275,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [showSerial, setShowSerial] = useState(false);
   const serialVisible = showSerial || !!invoice.serial.trim();
   const [invoiceModes, setInvoiceModes] = useState<Array<"single" | "multi">>(["single"]);
+  const [invoiceListFilter, setInvoiceListFilter] = useState<"all" | "errors" | "valid">("all");
   const invoiceMode = invoiceModes[selectedInvoice] ?? "single";
   const [companySimulation, setCompanySimulation] = useState<CompanySimulation>({ notValidate: false, skipVat8: false, from: "", to: "" });
   const simulatedCompanyReport = useMemo(() => companyPreview(template === "invoice" ? toHtmlVatInvoice(invoice, invoiceMode) : invoice, companySimulation), [invoice, invoiceMode, companySimulation, template]);
@@ -348,6 +351,25 @@ export function ApiSandbox({ domain }: { domain: string }) {
     return issues;
   }), [invoices, htmlInvoices, invoiceModes, template]);
   const formIssues = batchIssues[selectedInvoice];
+  const invalidInvoiceCount = batchIssues.filter((issues) => issues.length).length;
+  const validInvoiceCount = invoices.length - invalidInvoiceCount;
+  const allInvoiceListOptions = invoices.map((row, index) => ({
+    value: index,
+    label: `Hóa đơn ${index + 1} · ${row.customer || row.buyer || "Chưa nhập khách hàng"}`,
+    keywords: row.ikey,
+    status: batchIssues[index].length ? `${batchIssues[index].length} lỗi cần sửa` : "Đủ dữ liệu",
+    tone: batchIssues[index].length ? "danger" as const : "success" as const,
+  }));
+  const matchingInvoiceListOptions = allInvoiceListOptions.filter((option) => invoiceListFilter === "all" || (invoiceListFilter === "errors" ? batchIssues[Number(option.value)].length > 0 : batchIssues[Number(option.value)].length === 0));
+  const invoiceListOptions = matchingInvoiceListOptions.some((option) => Number(option.value) === selectedInvoice) ? matchingInvoiceListOptions : [allInvoiceListOptions[selectedInvoice]!, ...matchingInvoiceListOptions];
+  function changeInvoiceListFilter(filter: "all" | "errors" | "valid") {
+    setInvoiceListFilter(filter);
+    const matches = (index: number) => filter === "all" || (filter === "errors" ? batchIssues[index].length > 0 : batchIssues[index].length === 0);
+    if (!matches(selectedInvoice)) {
+      const nextIndex = invoices.findIndex((_, index) => matches(index));
+      if (nextIndex >= 0) selectInvoice(nextIndex);
+    }
+  }
   const invoiceIssuesByField = useMemo(() => {
     const grouped = new Map<string, string[]>();
     for (const issue of formIssues) grouped.set(issue.field, [...(grouped.get(issue.field) ?? []), issue.message]);
@@ -355,6 +377,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   }, [formIssues]);
   function clearForm() {
     setShowSerial(false);
+    setInvoiceListFilter("all");
     setExplanation(null);
     setInvoices([createEmptyInvoice()]);
     setInvoiceModes(["single"]);
@@ -1005,9 +1028,14 @@ export function ApiSandbox({ domain }: { domain: string }) {
                           <button type="button" className="subtle-button" disabled={invoices.length === 1} onClick={removeInvoice}><Trash2 size={14} />Xóa hóa đơn</button>
                         </div>
                       </div>
+                      <div className="invoice-batch-filters" role="group" aria-label="Lọc danh sách hóa đơn">
+                        <button type="button" data-active={invoiceListFilter === "all" || undefined} onClick={() => changeInvoiceListFilter("all")}>Tất cả <span>{invoices.length}</span></button>
+                        <button type="button" data-active={invoiceListFilter === "errors" || undefined} disabled={!invalidInvoiceCount} onClick={() => changeInvoiceListFilter("errors")}>Có lỗi <span className="danger">{invalidInvoiceCount}</span></button>
+                        <button type="button" data-active={invoiceListFilter === "valid" || undefined} disabled={!validInvoiceCount} onClick={() => changeInvoiceListFilter("valid")}>Đủ dữ liệu <span className="success">{validInvoiceCount}</span></button>
+                      </div>
                       <label className="invoice-batch-selector" id="invoice-batch-selector">
                         <span>Chọn hóa đơn đang nhập</span>
-                        <StyledSelect value={selectedInvoice} disabled={loading} onChange={(next) => selectInvoice(Number(next))} options={invoices.map((row, index) => ({ value: index, label: `Hóa đơn ${index + 1} · ${row.customer || row.buyer || "Chưa nhập khách hàng"} · ${batchIssues[index].length ? `${batchIssues[index].length} lỗi cần sửa` : "Đủ dữ liệu tại form"}` }))} />
+                        <StyledSelect searchable searchPlaceholder="Tìm theo số hóa đơn, khách hàng hoặc Ikey..." value={selectedInvoice} disabled={loading} onChange={(next) => selectInvoice(Number(next))} options={invoiceListOptions} />
                       </label>
                       <p className="invoice-batch-note" role="status">{batchIssues.filter((issues) => !issues.length).length}/{invoices.length} hóa đơn đủ dữ liệu tại form. Giới hạn công cụ: {MAX_INVOICES_PER_REQUEST} hóa đơn/gói, tối đa 2 MB. Một hóa đơn sai có thể khiến cả gói bị từ chối. Mỗi hóa đơn cần Ikey riêng.</p>
                     </section>
@@ -1732,7 +1760,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
               )}
 
               {/* Request body preview */}
-              <section className="response-card" onClick={(event) => {
+              <section className="response-card request-preview-card" onClick={(event) => {
                 if (template !== "invoice") return;
                 const node = (event.target as Element).closest<HTMLElement>("[data-xml-preview-tag]");
                 if (!node?.dataset.xmlPreviewTag) return;
@@ -1800,7 +1828,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   </button>}
                 </div>
                 {template === "invoice" && <div className="request-validation-summary">
-                  <div className={`request-local-status ${batchIssues.some((issues) => issues.length) ? "needs-attention" : "ready"}`}><strong>{batchIssues.some((issues) => issues.length) ? `Cần sửa dữ liệu: ${batchIssues.filter((issues) => issues.length).length}/${invoices.length} hóa đơn có lỗi` : "Chưa phát hiện lỗi trong bộ quy tắc tại form"}</strong><p>Chưa gửi API. Chưa xác minh dải, trạng thái Ikey đã tồn tại, danh mục, cấu hình công ty hoặc request gửi đồng thời. Chỉ phản hồi thật mới xác nhận kết quả.</p></div>
+                  <div className={`request-local-status ${invalidInvoiceCount ? "needs-attention" : "ready"}`}><span className="request-status-icon">{invalidInvoiceCount ? <CircleAlert size={20} aria-hidden="true" /> : <CircleCheckBig size={20} aria-hidden="true" />}</span><div><strong>{invalidInvoiceCount ? `Cần sửa dữ liệu · ${invalidInvoiceCount}/${invoices.length} hóa đơn có lỗi` : "Chưa phát hiện lỗi trong bộ quy tắc tại form"}</strong><p>Chưa gửi API. Chưa xác minh dải, trạng thái Ikey đã tồn tại, danh mục, cấu hình công ty hoặc request gửi đồng thời. Chỉ phản hồi thật mới xác nhận kết quả.</p></div></div>
                   {(companySimulation.notValidate || companySimulation.skipVat8 || companySimulation.from || companySimulation.to || simulatedCompanyReport.pendingVat8) && <details className="request-company-simulation" open><summary>Kết quả giả lập công ty · hóa đơn {selectedInvoice + 1}</summary><p>Bỏ qua {simulatedCompanyReport.skipped} lỗi trường; còn {simulatedCompanyReport.issues.length} lỗi trong phạm vi mô phỏng. Gửi thật vẫn kiểm tra dữ liệu đầy đủ, không gửi các công tắc này.</p>{simulatedCompanyReport.pendingVat8 && <p>Chưa đối chiếu thời hạn thuế 8% vì chưa có cấu hình CheckVat8 của hệ thống.</p>}<ul>{simulatedCompanyReport.issues.map((issue, index) => <li key={index}><code>{issue.field}</code>: {issue.message}</li>)}</ul></details>}
                 </div>}
                 {activeTab === "invoice-preview" && template === "invoice" ? <InvoiceDocumentPreview value={invoice} index={selectedInvoice} /> : activeTab === "request" && isInvoice && prettyPreview ? (
