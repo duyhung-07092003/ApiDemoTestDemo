@@ -17,7 +17,7 @@ export function invoiceFieldExplanation(value: InvoiceInput, selection: XmlSelec
   let formula = "Không có công thức, nhập trực tiếp.";
   let note = "Giải thích trên dữ liệu form; kết quả xử lý thật phụ thuộc quy tắc và cấu hình API.";
   if (product && amounts) {
-    if (field === "Total") { actual = amounts.total; expected = product.quantity * product.price - product.discountAmount; formula = "Gợi ý: Total = ProdQuantity × ProdPrice − DiscountAmount"; note = "Total có thể nhập trực tiếp. API không bắt buộc phép tính số lượng × đơn giá phải khớp Total."; }
+    if (field === "Total") { actual = amounts.total; formula = "Total = thành tiền của dòng, chưa thuế"; note = "Nhập trực tiếp theo chứng từ. Mẫu HTML không có ô số lượng/đơn giá bắt buộc."; }
     else if (field === "VATAmount") { actual = amounts.vatAmount; expected = Math.round(amounts.total * (product.vat === -3 ? Number(product.vatRateOther) : Math.max(0, product.vat))) / 100; formula = "Gợi ý: VATAmount = Total × thuế suất ÷ 100"; note = "Form gửi rõ tiền thuế hiển thị. Nhánh tự tính tại API yêu cầu dòng kế thừa thuế suất, không gửi Feature và không gửi VATAmount."; }
     else if (field === "Amount") { actual = amounts.amount; expected = amounts.total + amounts.vatAmount; formula = "Gợi ý: Amount = Total + VATAmount của dòng"; }
     else if (field === "No") { actual = (selection.index ?? 0) + 1; formula = "Tự đánh số theo vị trí sản phẩm trong hóa đơn."; }

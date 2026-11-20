@@ -10,6 +10,10 @@
 .import-help-toggle[aria-expanded="true"] { background: var(--ui-soft); box-shadow: 0 0 0 3px var(--ui-soft); }
 .import-field-help { padding: 9px 11px; background: var(--ui-input); border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-solid); border-radius: 8px; color: var(--ui-text); font-size: 13px; line-height: 1.6; }
 .import-field-help p { margin: 4px 0 0; color: var(--ui-muted); }
+.import-field-help .import-help-error { color: #b45309; }
+.import-company-config > p { color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
+.import-inline-check small { display: block; margin-top: 3px; color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
+.import-location-fields .field[data-xml-tag="LocationAddress"] { grid-column: 1 / -1; }
 .import-content-form .field[data-request-selected] > :is(input, .styled-select-trigger, .date-picker-trigger),
 .import-content-form .field[data-request-selected] > div > input { outline: 2px solid var(--ui-solid); outline-offset: 1px; }
 .import-content-form .field[data-xml-tag="AmountInWords"] { grid-column: 1 / -1; }

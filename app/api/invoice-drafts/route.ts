@@ -2,6 +2,7 @@ import { buildInvoiceBatch, validateInvoiceBatch } from "@/lib/softdreams/invoic
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
 import { softdreamsEndpoint } from "@/lib/softdreams/config.server";
 import { createAuthen } from "@/lib/softdreams/auth.server";
+import { buildHtmlInvoiceBatch, htmlFormIssues } from "@/lib/softdreams/html-invoice";
 
 export const runtime = "nodejs";
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -30,11 +31,15 @@ export async function POST(request: Request) {
   let headers: Headers;
   try {
     payload = JSON.parse(await readLimited(request.body));
+    const htmlForm = payload.form === "html-single-vat";
+    if (payload.form !== undefined && !htmlForm) throw new Error("Loại form không được hỗ trợ.");
     const invoices = validateInvoiceBatch(payload.invoices ?? [payload.invoice]);
+    if (htmlForm && invoices.some((row) => row.profile !== "tt78" || row.convert !== 0 || row.products.some((product) => product.vat !== row.vatRate || (row.vatRate === -3 && product.vatRateOther !== row.vatRateOther)))) throw new Error("Mẫu HTML một thuế suất cần TT78, Unicode và các dòng dùng cùng thuế suất hóa đơn.");
+    if (htmlForm) invoices.forEach((row, index) => { const issues = htmlFormIssues(row); if (issues.length) throw new Error(`Hóa đơn ${index + 1}: ${issues.map((issue) => issue.message).join(" ")}`); });
     const invoice = invoices[0];
     headers = new Headers({ "Content-Type": "application/json", Accept: "application/json" });
     headers.set("Authentication", createAuthen(SOFTDREAMS_APIS.invoice.method));
-    payload = { XmlData: buildInvoiceBatch(invoices), ...(invoice.pattern ? { Pattern: invoice.pattern } : {}), ...(invoice.serial.trim() ? { Serial: invoice.serial } : {}), Convert: invoice.convert };
+    payload = { XmlData: htmlForm ? buildHtmlInvoiceBatch(invoices) : buildInvoiceBatch(invoices), ...(invoice.pattern ? { Pattern: invoice.pattern } : {}), ...(invoice.serial.trim() ? { Serial: invoice.serial } : {}), ...(!htmlForm ? { Convert: invoice.convert } : {}) };
     if (Buffer.byteLength(JSON.stringify(payload)) > MAX_BYTES) throw new Error("Gói XML vượt giới hạn 2 MB. Hãy giảm số hóa đơn hoặc dòng hàng.");
   } catch (error) {
     return Response.json({ message: error instanceof Error ? error.message : "Request không hợp lệ." }, { status: 400, headers: { "Cache-Control": "no-store" } });
