@@ -49,6 +49,16 @@ export function ImportInvoiceForm({ value, onChange, issues, simulation, onSimul
   }
   const input = (key: InvoiceTextKey, maxLength?: number) => <input value={value[key]} maxLength={maxLength} onChange={(event) => update(key, event.target.value)} />;
   return <div className="import-content-form">
+    <details className="import-company-config import-config-disclosure">
+      <summary><span><strong>Giả lập cấu hình công ty</strong><small>Loại dải hóa đơn và các tùy chọn mô phỏng</small></span><ChevronDown size={17} /></summary>
+      <div className="import-config-body">
+      <p>Các tùy chọn này là cấu hình riêng của công ty bạn (công ty tự bật trên hệ thống), không gửi trong request. Bật để xem sandbox phản ứng thế nào.</p>
+      <label className="field" id="invoice-field-specialInvoice"><span>Loại dải hóa đơn (cấu hình của dải, không gửi trong request)</span><StyledSelect value={value.specialInvoice} onChange={(specialInvoice) => onChange({ ...value, specialInvoice, products: value.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) })} options={[{ value: "0", label: "Dải thông thường" }, { value: "1", label: "Dải đặc thù: mua bán xe" }, { value: "2", label: "Dải đặc thù: dịch vụ vận chuyển" }, { value: "3", label: "Dải đặc thù: vận chuyển trên nền tảng TMĐT" }]} /></label>
+      <label className="import-inline-check"><input type="checkbox" checked={simulation.notValidate} onChange={(event) => onSimulationChange({ ...simulation, notValidate: event.target.checked })} /><span>Công ty bật <code>NotValidateXmlData</code> (bỏ qua kiểm tra trường và sản phẩm; vẫn kiểm XSD, Ikey, chiết khấu, năm ký hiệu, thuế 8%)<small>Ví dụ: bỏ trống cả CusName lẫn Buyer để so sánh kết quả mô phỏng khi bật/tắt.</small></span></label>
+      <label className="import-inline-check"><input type="checkbox" checked={simulation.skipVat8} onChange={(event) => onSimulationChange({ ...simulation, skipVat8: event.target.checked })} /><span>Công ty bật <code>SkipVat8=1</code> (bỏ qua kiểm thuế 8% theo thời hạn giảm thuế; chỉ áp dụng ký hiệu bắt đầu 1, 2, 5)<small>Ví dụ trong HTML: chọn thuế 8% và ngày năm 2027 để so sánh khi bật/tắt. Thời hạn thực tế phụ thuộc CheckVat8 trên server.</small></span></label>
+      <p className="import-full-note">Các công tắc chỉ mô phỏng; không tự bật cấu hình trên Softdreams. Gửi thật vẫn được server kiểm tra dữ liệu. Thời hạn thuế 8% cần đối chiếu cấu hình công ty.</p>
+      </div>
+    </details>
     {selectedExplanation && <aside className="import-formula" role="status"><button type="button" className="subtle-button" aria-label="Đóng giải thích" onClick={onCloseExplanation}>×</button><strong>{selectedExplanation.field} · {selectedExplanation.where}</strong><p className="import-formula-expression">{selectedExplanation.formula}</p><p>Đang nhập: <b>{format(selectedExplanation.actual)}</b>{selectedExplanation.expected !== undefined && <> · Đối chiếu: <b>{format(selectedExplanation.expected)}</b></>}</p>{selectedExplanation.matches !== undefined && <p className={selectedExplanation.matches ? "formula-matches" : "formula-differs"}>{selectedExplanation.matches ? "Khớp công thức gợi ý" : "Lệch so với công thức gợi ý · kiểm tra lại chứng từ"}</p>}<p>{selectedExplanation.note}</p></aside>}
     <section className="import-tax-description">
       <div className="import-section-heading"><h3>Kiểu mẫu: một thuế suất</h3></div>
@@ -96,16 +106,6 @@ export function ImportInvoiceForm({ value, onChange, issues, simulation, onSimul
       <button type="button" className="subtle-button" onClick={() => update("products", [...value.products, { ...initialInvoice.products[0], code: "", name: "", quantity: 1, price: 0, vat: value.vatRate, vatRateOther: value.vatRateOther, totalOverride: "", vatAmountOverride: "", amountOverride: "", extra: "" }])}><Plus size={14} />Thêm sản phẩm</button>
     </section>
 
-    <details className="import-company-config import-config-disclosure">
-      <summary><span><strong>Giả lập cấu hình công ty</strong><small>Loại dải hóa đơn và các tùy chọn mô phỏng</small></span><ChevronDown size={17} /></summary>
-      <div className="import-config-body">
-      <p>Các tùy chọn này là cấu hình riêng của công ty bạn (công ty tự bật trên hệ thống), không gửi trong request. Bật để xem sandbox phản ứng thế nào.</p>
-      <label className="field" id="invoice-field-specialInvoice"><span>Loại dải hóa đơn (cấu hình của dải, không gửi trong request)</span><StyledSelect value={value.specialInvoice} onChange={(specialInvoice) => onChange({ ...value, specialInvoice, products: value.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) })} options={[{ value: "0", label: "Dải thông thường" }, { value: "1", label: "Dải đặc thù: mua bán xe" }, { value: "2", label: "Dải đặc thù: dịch vụ vận chuyển" }, { value: "3", label: "Dải đặc thù: vận chuyển trên nền tảng TMĐT" }]} /></label>
-      <label className="import-inline-check"><input type="checkbox" checked={simulation.notValidate} onChange={(event) => onSimulationChange({ ...simulation, notValidate: event.target.checked })} /><span>Công ty bật <code>NotValidateXmlData</code> (bỏ qua kiểm tra trường và sản phẩm; vẫn kiểm XSD, Ikey, chiết khấu, năm ký hiệu, thuế 8%)<small>Ví dụ: bỏ trống cả CusName lẫn Buyer để so sánh kết quả mô phỏng khi bật/tắt.</small></span></label>
-      <label className="import-inline-check"><input type="checkbox" checked={simulation.skipVat8} onChange={(event) => onSimulationChange({ ...simulation, skipVat8: event.target.checked })} /><span>Công ty bật <code>SkipVat8=1</code> (bỏ qua kiểm thuế 8% theo thời hạn giảm thuế; chỉ áp dụng ký hiệu bắt đầu 1, 2, 5)<small>Ví dụ trong HTML: chọn thuế 8% và ngày năm 2027 để so sánh khi bật/tắt. Thời hạn thực tế phụ thuộc CheckVat8 trên server.</small></span></label>
-      <p className="import-full-note">Các công tắc chỉ mô phỏng; không tự bật cấu hình trên Softdreams. Gửi thật vẫn được server kiểm tra dữ liệu. Thời hạn thuế 8% cần đối chiếu cấu hình công ty.</p>
-      </div>
-    </details>
     <section className="import-conditional-fields">
       <div className="import-section-heading"><h3>Thông tin bổ sung</h3></div>
       <div className="import-expand-card" data-open={showBuyer}>
