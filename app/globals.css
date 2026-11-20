@@ -809,3 +809,37 @@ button, input, select, textarea { font-family: "Times New Roman", Times, serif; 
 .sandbox-shell .field input:not([type="checkbox"]):not([type="radio"]),
 .sandbox-shell .field select,
 .sandbox-shell .field .styled-select-trigger { height: 44px; min-height: 44px; }
+
+/* Date picker uses a portal so the calendar is never clipped by the form. */
+.date-picker-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; height: 44px; padding: 0 13px; color: #1e293b; background: #fff; border: 1px solid #d5deeb; border-radius: 12px; font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.date-picker-trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.date-picker-trigger > svg { flex-shrink: 0; color: #5274a7; }
+.date-picker-trigger [data-placeholder] { color: #94a3b8; }
+.date-picker-trigger:hover { border-color: #93b0d8; }
+.date-picker-trigger:focus-visible, .date-picker-trigger[data-popup-open] { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px #3b82f621; }
+.date-picker-trigger:disabled { opacity: .55; cursor: not-allowed; }
+.date-picker-positioner { z-index: 900; }
+.date-picker-popup { --date-bg: #fff; --date-text: #1e293b; --date-muted: #7b8ba3; --date-line: #e5ecf5; --date-hover: #eff6ff; width: min(320px, calc(100vw - 24px)); max-height: var(--available-height); overflow: auto; padding: 16px; color: var(--date-text); background: var(--date-bg); border: 1px solid var(--date-line); border-radius: 20px; box-shadow: 0 16px 48px #0f172a24, 0 4px 12px #0f172a0a; font-family: "Times New Roman", Times, serif; transform-origin: var(--transform-origin); }
+.date-picker-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.date-picker-heading > button { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 32px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--date-muted); cursor: pointer; }
+.date-picker-heading > button:hover { color: #2563eb; background: var(--date-hover); }
+.date-picker-period { flex: 1; min-width: 0; display: grid; grid-template-columns: 1.15fr 1fr; gap: 4px; }
+.date-picker-period .styled-select-trigger { min-height: 34px; height: 34px; gap: 3px; padding: 0 8px; border-color: transparent; background: var(--date-hover); color: var(--date-text); border-radius: 9px; font-size: 15px; font-weight: 700; }
+.date-picker-period .styled-select-trigger > svg { width: 12px; }
+.date-picker-week, .date-picker-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.date-picker-week { margin-bottom: 8px; color: var(--date-muted); font-size: 12px; text-align: center; }
+.date-picker-days button { display: grid; place-items: center; aspect-ratio: 1; width: 100%; padding: 0; border: 1px solid transparent; border-radius: 11px; color: var(--date-text); background: transparent; font: inherit; font-size: 15px; cursor: pointer; transition: background .12s, color .12s; }
+.date-picker-days button[data-outside] { color: var(--date-muted); opacity: .55; }
+.date-picker-days button[data-today] { color: #2563eb; border-color: #bfdbfe; font-weight: 700; }
+.date-picker-days button:hover:not(:disabled) { color: #1d4ed8; background: var(--date-hover); }
+.date-picker-days button[data-selected], .date-picker-days button[data-selected]:hover { color: #fff; background: #2563eb; border-color: #2563eb; box-shadow: 0 3px 8px #2563eb30; font-weight: 700; opacity: 1; }
+.date-picker-popup button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.date-picker-days button:disabled, .date-picker-footer button:disabled { opacity: .3; cursor: not-allowed; }
+.date-picker-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--date-line); }
+.date-picker-footer button { padding: 6px 10px; border: 0; border-radius: 9px; color: #2563eb; background: var(--date-hover); font: inherit; font-size: 14px; cursor: pointer; }
+.date-picker-footer button:first-child { color: var(--date-muted); background: transparent; }
+.sandbox-shell[data-theme="dark"] .date-picker-trigger { color: #e2e8f0; background: #0e1929; border-color: #334762; }
+:root:has(.sandbox-shell[data-theme="dark"]) .date-picker-popup { --date-bg: #111e30; --date-text: #e2e8f0; --date-muted: #94a3b8; --date-line: #2a3d57; --date-hover: #1c3454; }
+:root:has(.sandbox-shell[data-theme="dark"]) .date-picker-days button[data-today],
+:root:has(.sandbox-shell[data-theme="dark"]) .date-picker-footer button { color: #93c5fd; }
+:root:has(.sandbox-shell[data-theme="dark"]) .date-picker-days button[data-selected] { color: #fff; }
