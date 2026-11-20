@@ -39,6 +39,30 @@
 .import-expand-hint { margin: 12px 0 0; color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
 .import-unsupported-note { margin-top: 16px; padding: 8px 0; color: var(--ui-muted); font-size: 12px; }
 .import-unsupported-note summary { cursor: pointer; }
+.invoice-issues-popup { position: fixed; z-index: 80; right: 20px; bottom: 20px; display: flex; flex-direction: column; width: min(390px, calc(100vw - 32px)); max-height: min(60dvh, 560px); color: var(--ui-text); background: var(--ui-surface); border: 1px solid var(--ui-accent-line); border-top: 4px solid var(--ui-solid); border-radius: 16px; box-shadow: 0 12px 48px #00000024; overflow: hidden; }
+.invoice-issues-popup-heading { display: flex; flex-shrink: 0; gap: 10px; align-items: center; padding: 14px 16px 10px; background: var(--ui-soft); }
+.invoice-issues-popup-heading > svg { flex-shrink: 0; color: var(--ui-accent); }
+.invoice-issues-popup h3 { margin: 0; color: var(--ui-text); font-size: 17px; }
+.invoice-issues-popup-heading p { margin: 3px 0 0; color: var(--ui-accent); font-size: 13px; font-weight: 700; }
+.invoice-issues-popup-note { flex-shrink: 0; margin: 0; padding: 10px 16px; color: var(--ui-muted); border-bottom: 1px solid var(--ui-line); font-size: 13px; line-height: 1.5; }
+.invoice-issues-popup-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 10px 10px; }
+.invoice-issues-popup-list h4 { display: grid; gap: 3px; margin: 12px 5px 6px; color: var(--ui-text); font-size: 14px; }
+.invoice-issues-popup-list h4 span { overflow: hidden; color: var(--ui-muted); font-size: 12px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.invoice-issues-popup-list ul { margin: 0; padding: 0; list-style: none; }
+.invoice-issues-popup-list button { display: flex; align-items: start; justify-content: space-between; gap: 8px; width: 100%; padding: 10px; border: 1px solid transparent; border-radius: 9px; color: var(--ui-text); background: transparent; font: inherit; font-size: 13px; line-height: 1.5; text-align: left; cursor: pointer; }
+.invoice-issues-popup-list button > span { min-width: 0; }
+.invoice-issues-popup-list button code { display: block; margin-bottom: 2px; color: var(--ui-accent); font-family: inherit; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.invoice-issues-popup-list button > svg { flex-shrink: 0; margin-top: 3px; color: var(--ui-accent); }
+.invoice-issues-popup-list button:hover, .invoice-issues-popup-list section[data-current] button { background: var(--ui-soft); }
+.invoice-issues-popup-list li + li { margin-top: 3px; }
+.invoice-issues-popup button:focus-visible { outline: 2px solid var(--ui-solid); outline-offset: -2px; }
+.invoice-issues-popup footer { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-top: 1px solid var(--ui-line); }
+.invoice-issues-popup footer > span { color: var(--ui-muted); font-size: 12px; }
+.invoice-issues-popup footer > button { display: inline-flex; flex-shrink: 0; align-items: center; gap: 5px; padding: 8px 10px; border: 0; border-radius: 8px; color: #fff; background: var(--ui-solid); font: inherit; font-size: 12px; cursor: pointer; }
+@media (max-width: 900px) {
+  .invoice-issues-popup { right: 12px; bottom: 12px; max-height: 35dvh; }
+  :root:has(.invoice-issues-popup) .content { padding-bottom: 38dvh; }
+}
 @media (max-width: 640px) {
   .import-expand-toggle { gap: 8px; padding: 12px; }
   .import-expand-toggle em { display: none; }

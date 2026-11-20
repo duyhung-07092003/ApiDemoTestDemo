@@ -38,6 +38,7 @@ import { companyPreview, type CompanySimulation } from "@/lib/softdreams/company
 import type { XmlScope, XmlSelection } from "@/lib/softdreams/xml-selection";
 import { IMPORT_FIELD_HELP } from "@/lib/softdreams/import-field-help";
 import { buildHtmlInvoiceBatch, toHtmlSingleVatInvoice, htmlFormIssues } from "@/lib/softdreams/html-invoice";
+import { InvoiceIssuesPopup } from "./invoice-issues-popup";
 
 type TemplateId =
   | "invoice"
@@ -360,6 +361,19 @@ export function ApiSandbox({ domain }: { domain: string }) {
     setSelectedInvoice(index); setFocusedXml(null);
     requestAnimationFrame(() => document.getElementById("invoice-batch-selector")?.scrollIntoView({ block: "nearest", inline: "nearest" }));
   }
+  function focusInvoiceIssue(index: number, issue: { field: string }) {
+    selectInvoice(index);
+    const productIndex = issue.field.match(/^products\[(\d+)\]\.extra$/)?.[1];
+    const targetField = productIndex !== undefined && invoices[index].specialInvoice === "0" ? `products[${productIndex}].feature` : issue.field;
+    if (targetField !== issue.field) setExplanation({ tag: "Feature", scope: "product", index: Number(productIndex), invoiceIndex: index });
+    requestAnimationFrame(() => {
+      const field = document.getElementById(`invoice-field-${encodeURIComponent(targetField)}`);
+      let details = field?.closest("details");
+      while (details) { details.open = true; details = details.parentElement?.closest("details") ?? null; }
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.querySelector<HTMLElement>('input:not([type="hidden"]):not([readonly]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
+    });
+  }
   function addInvoice(copy = false) {
     if (invoices.length >= MAX_INVOICES_PER_REQUEST || loading) return;
     const next = copy ? structuredClone(invoice) : createEmptyInvoice();
@@ -436,7 +450,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
       try {
         const invalidIndex = batchIssues.findIndex((issues) => issues.length > 0);
         if (invalidIndex >= 0) {
-          selectInvoice(invalidIndex);
+          focusInvoiceIssue(invalidIndex, batchIssues[invalidIndex][0]);
           throw new Error(`Hóa đơn ${invalidIndex + 1} có ${batchIssues[invalidIndex].length} lỗi. Sửa các trường được đánh dấu trước khi gửi cả gói.`);
         }
         validateInvoiceBatch(htmlInvoices);
@@ -984,7 +998,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                     </section>
                     <h3 className="invoice-current-heading" id="invoice-editor">Đang nhập hóa đơn {selectedInvoice + 1} / {invoices.length}</h3>
                   </>}
-{formIssues.length > 0 && <details className="invoice-form-issues" open><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><button type="button" onClick={() => {
+{template !== "invoice" && formIssues.length > 0 && <details className="invoice-form-issues" open><summary>{formIssues.length} trường cần kiểm tra trước khi gửi</summary><ul>{formIssues.map((issue, index) => <li key={index}><button type="button" onClick={() => {
   const field = document.getElementById(`invoice-field-${encodeURIComponent(issue.field)}`);
   let section = field?.closest("details");
   while (section) { section.open = true; section = section.parentElement?.closest("details") ?? null; }
@@ -1869,6 +1883,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
           </footer>
         </div>
       </section>
+      {template === "invoice" && workspaceView === "request" && <InvoiceIssuesPopup selectedIndex={selectedInvoice} groups={invoices.map((row, index) => ({ index, customer: row.customer || row.buyer, issues: batchIssues[index] }))} onSelectIssue={focusInvoiceIssue} />}
     </main>
   );
 }
