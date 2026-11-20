@@ -630,7 +630,8 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .invoice-field-advanced[open] > summary, .product-advanced[open] > summary { margin-bottom: 14px; }
 .invoice-field-advanced > .field { margin-top: 12px; }
 .product-special-extra { grid-column: 1 / -1; border: 1px solid #dce4f1; border-radius: 12px; padding: 14px; background: #fbfcff; }
-.product-special-extra > strong { display: block; margin-bottom: 12px; }
+.product-special-extra > strong { display: block; margin-bottom: 12px; color: #2454a6; font-size: 14px; }
+.product-special-extra > strong .required-star { margin-left: 3px; color: #dc3545; }
 .invoice-summary > .invoice-rule-note { grid-column: 1 / -1; margin: 0; }
 .invoice-field-error-anchor { scroll-margin-block: 140px; }
 .field[data-invalid="true"] { scroll-margin-block: 140px; }
@@ -783,7 +784,7 @@ button, input, select, textarea { font-family: "Times New Roman", Times, serif; 
 
 /* Share label height within each visual row instead of reserving two lines everywhere. */
 @supports (grid-template-rows: subgrid) {
-  :is(.form-grid, .product-row, .invoice-summary) > .field {
+  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field {
     display: grid;
     grid-row: span 3;
     grid-template-rows: subgrid;
@@ -791,16 +792,16 @@ button, input, select, textarea { font-family: "Times New Roman", Times, serif; 
     align-self: stretch;
     align-content: start;
   }
-  :is(.form-grid, .product-row, .invoice-summary) > .field > span:first-child {
+  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field > span:first-child {
     grid-row: 1;
     align-self: end;
     margin-bottom: 0;
   }
-  :is(.form-grid, .product-row, .invoice-summary) > .field > :nth-child(2) {
+  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field > :nth-child(2) {
     grid-row: 2;
     align-self: start;
   }
-  :is(.form-grid, .product-row, .invoice-summary) > .field > .field-validation-messages {
+  :is(.form-grid, .product-row, .invoice-summary, .special-extra-fields) > .field > .field-validation-messages {
     grid-row: 3;
     align-self: start;
   }

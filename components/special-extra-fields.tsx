@@ -23,7 +23,7 @@ export function SpecialExtraFields({ type, value, onChange, reference = false }:
   ];
   else if (type === "2") keys = [["BKSPTVChuyen", "Biển kiểm soát phương tiện *"]];
   else if (type === "3") keys = [["TNGHang", "Tên người gửi hàng *"], ["DCNGHang", "Địa chỉ người gửi *"], ["MSTNGHang", "MST người gửi *"], ["MDDNGHang", "Mã định danh người gửi *"]];
-  return <div className="special-extra-fields">{keys.map(([key, label]) => <label className="field" key={key}><span>{label} · {key}</span>
+  return <div className="special-extra-fields">{keys.map(([key, label]) => { const required = label.endsWith(" *"); const text = required ? label.slice(0, -2) : label; return <label className="field" key={key}><span><span className="field-label-text">{text} · {key}</span>{required && <b className="required-star">*</b>}</span>
     <input data-extra-key={key} value={String(obj[key] ?? "")} onChange={(e) => {
       const next = { ...obj };
       if (e.target.value === "") delete next[key]; else next[key] = e.target.value;
@@ -35,5 +35,5 @@ export function SpecialExtraFields({ type, value, onChange, reference = false }:
         for (const vehicleKey of ["MNSXuat", "TLTSDKy", "NSXuat", "TTMai", "TNHieu", "KLXe", "TTLVHCSuat", "TTai", "SCNgoi", "SBKSoat"]) delete next[vehicleKey];
       }
       onChange(JSON.stringify(next, null, 2));
-    }} /></label>)}</div>;
+    }} /></label>; })}</div>;
 }

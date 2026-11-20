@@ -37,7 +37,7 @@ import { InvoiceDocumentPreview } from "./invoice-document-preview";
 import { companyPreview, type CompanySimulation } from "@/lib/softdreams/company-preview";
 import type { XmlScope, XmlSelection } from "@/lib/softdreams/xml-selection";
 import { IMPORT_FIELD_HELP } from "@/lib/softdreams/import-field-help";
-import { buildHtmlInvoiceBatch, toHtmlSingleVatInvoice, htmlFormIssues } from "@/lib/softdreams/html-invoice";
+import { buildHtmlInvoiceBatch, toHtmlVatInvoice, htmlFormIssues } from "@/lib/softdreams/html-invoice";
 import { InvoiceIssuesPopup } from "./invoice-issues-popup";
 import { CompanySimulationSettings } from "./company-simulation-settings";
 import { applyInvoiceRange } from "@/lib/softdreams/invoice-range";
@@ -239,7 +239,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   function setInvoice(update: React.SetStateAction<InvoiceInput>) {
     setInvoices((current) => {
       const updated = typeof update === "function" ? update(current[selectedInvoice]) : update;
-      const next = template === "invoice" ? { ...updated, profile: "tt78", convert: 0, products: updated.products.map((product) => ({ ...product, vat: updated.vatRate, vatRateOther: updated.vatRateOther })) } : updated;
+      const next = template === "invoice" ? { ...updated, profile: "tt78", convert: 0, products: invoiceMode === "single" ? updated.products.map((product) => ({ ...product, vat: updated.vatRate, vatRateOther: updated.vatRateOther })) : updated.products } : updated;
       return current.map((row, index) => index === selectedInvoice ? next : {
         ...row, ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, next[key]])),
         ...(next.specialInvoice !== row.specialInvoice ? { products: row.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) } : {}),
@@ -275,15 +275,18 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [invoiceModes, setInvoiceModes] = useState<Array<"single" | "multi">>(["single"]);
   const invoiceMode = invoiceModes[selectedInvoice] ?? "single";
   const [companySimulation, setCompanySimulation] = useState<CompanySimulation>({ notValidate: false, skipVat8: false, from: "", to: "" });
-  const simulatedCompanyReport = useMemo(() => companyPreview(template === "invoice" ? toHtmlSingleVatInvoice(invoice) : invoice, companySimulation), [invoice, companySimulation, template]);
-  function setInvoiceMode(mode: "single" | "multi") { setInvoiceModes((current) => current.map((value, index) => index === selectedInvoice ? mode : value)); }
+  const simulatedCompanyReport = useMemo(() => companyPreview(template === "invoice" ? toHtmlVatInvoice(invoice, invoiceMode) : invoice, companySimulation), [invoice, invoiceMode, companySimulation, template]);
+  function setInvoiceMode(mode: "single" | "multi") {
+    setInvoiceModes((current) => current.map((value, index) => index === selectedInvoice ? mode : value));
+    if (mode === "single") setInvoices((current) => current.map((row, index) => index === selectedInvoice ? { ...row, products: row.products.map((product) => ({ ...product, vat: row.vatRate, vatRateOther: row.vatRateOther })) } : row));
+  }
   const [focusedXml, setFocusedXml] = useState<XmlSelection | null>(null);
   const [explanation, setExplanation] = useState<XmlSelection | null>(null);
-  const htmlInvoices = useMemo(() => invoices.map(toHtmlSingleVatInvoice), [invoices]);
+  const htmlInvoices = useMemo(() => invoices.map((row, index) => toHtmlVatInvoice(row, invoiceModes[index] ?? "single")), [invoices, invoiceModes]);
 
   const xmlBody = useMemo(
-    () => template === "invoice" ? buildHtmlInvoiceBatch(htmlInvoices) : buildInvoice(invoice),
-    [invoice, htmlInvoices, template],
+    () => template === "invoice" ? buildHtmlInvoiceBatch(htmlInvoices, invoiceModes) : buildInvoice(invoice),
+    [invoice, htmlInvoices, invoiceModes, template],
   );
   const body = useMemo(() => {
     if (template === "invoice")
@@ -333,11 +336,17 @@ export function ApiSandbox({ domain }: { domain: string }) {
   }, [auth, method, domain, apiPath, body, apiKeyName, isInvoice, xmlBody, template]);
   const invoiceTotals = useMemo(() => calculateInvoice(invoice), [invoice]);
   const batchIssues = useMemo(() => (template === "invoice" ? htmlInvoices : invoices).map((row, index) => {
-    const issues = invoiceIssues({ ...row, tax: row.tax.replace(/\s/g, "") }).map((issue) => template === "invoice" && /^products\[\d+\]\.vatRateOther$/.test(issue.field) ? { ...issue, field: "vatRateOther" } : template === "invoice" && /^products\[\d+\]\.vatRate$/.test(issue.field) ? { ...issue, field: "vatRate" } : issue);
+    const issues = invoiceIssues({ ...row, tax: row.tax.replace(/\s/g, "") }).map((issue) => {
+      if (template !== "invoice") return issue;
+      const productVat = issue.field.match(/^products\[(\d+)\]\.(vatRate|vatRateOther)$/);
+      if (!productVat) return issue;
+      if ((invoiceModes[index] ?? "single") === "single") return { ...issue, field: productVat[2] === "vatRate" ? "vatRate" : "vatRateOther" };
+      return { ...issue, field: `products[${productVat[1]}].${productVat[2] === "vatRate" ? "vat" : "vatRateOther"}` };
+    });
     if (template === "invoice") issues.push(...htmlFormIssues(invoices[index]));
     if (row.ikey.trim() && invoices.filter((other) => other.ikey.trim() === row.ikey.trim()).length > 1) issues.push({ field: "ikey", message: "Ikey bị trùng với hóa đơn khác trong gói." });
     return issues;
-  }), [invoices, htmlInvoices, template]);
+  }), [invoices, htmlInvoices, invoiceModes, template]);
   const formIssues = batchIssues[selectedInvoice];
   const invoiceIssuesByField = useMemo(() => {
     const grouped = new Map<string, string[]>();
@@ -463,7 +472,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
         const response = await fetch("/api/invoice-drafts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoices: htmlInvoices, form: "html-single-vat" }),
+          body: JSON.stringify({ invoices: htmlInvoices, modes: invoiceModes, form: "html-vat" }),
           signal: AbortSignal.timeout(35000),
         });
         const data = await response.json();
@@ -985,7 +994,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       <div className="form-grid" data-serial-visible={serialVisible}>
                         <Field validationField="pattern" label="Pattern · Ký hiệu hóa đơn" xmlTag={null} help={IMPORT_FIELD_HELP.Pattern.rule}><input value={invoice.pattern} onChange={(event) => setInvoice({ ...invoice, pattern: event.target.value })} placeholder="Ví dụ: 1C26TAA" /></Field>
                         <label className="field invoice-batch-range" id="invoice-field-specialInvoice"><span>Loại dải hóa đơn</span><StyledSelect value={invoice.specialInvoice} disabled={loading} onChange={(specialInvoice) => { setExplanation(null); setFocusedXml(null); setInvoices((current) => current.map((row) => applyInvoiceRange(row, specialInvoice))); }} options={[{ value: "0", label: "Dải thông thường" }, { value: "1", label: "Dải đặc thù: mua bán xe" }, { value: "2", label: "Dải đặc thù: dịch vụ vận chuyển" }, { value: "3", label: "Dải đặc thù: vận chuyển trên nền tảng TMĐT" }]} /><small>Cấu hình của dải · dùng chung cả gói · không gửi trong request</small></label>
-                        {serialVisible && <Field validationField="serial" label="Serial · Ký hiệu mẫu số" xmlTag={null} help={IMPORT_FIELD_HELP.Serial.rule}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Ví dụ: 1" /></Field>}
+                        {serialVisible && <Field validationField="serial" label="Serial · Ký hiệu mẫu số" xmlTag={null} help={IMPORT_FIELD_HELP.Serial.rule}><input value={invoice.serial} onChange={(event) => setInvoice({ ...invoice, serial: event.target.value })} placeholder="Serial có thể để trống" /></Field>}
                       </div>
                     </section>
                     <section className="invoice-batch-manager" aria-label="Danh sách hóa đơn trong gói">
@@ -1012,7 +1021,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   field?.scrollIntoView({ behavior: "smooth", block: "center" });
   field?.querySelector<HTMLElement>('input:not([type="hidden"]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
 }}><code>{issue.field}</code>: {issue.message}</button></li>)}</ul></details>}
-{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} explanation={explanation?.invoiceIndex === selectedInvoice ? explanation : null} onCloseExplanation={() => { setExplanation(null); setFocusedXml(null); }} /> : <><section
+{template === "invoice" ? <ImportInvoiceForm key={selectedInvoice} value={invoice} onChange={setInvoice} issues={formIssues} explanation={explanation?.invoiceIndex === selectedInvoice ? explanation : null} onCloseExplanation={() => { setExplanation(null); setFocusedXml(null); }} mode={invoiceMode} onModeChange={setInvoiceMode} /> : <><section
                     className="tax-mode-section"
                     aria-label="Thiết lập mẫu thuế"
                     style={{ marginTop: 14 }}

@@ -15,10 +15,11 @@
 .import-formula-expression { padding: 7px 9px; background: var(--ui-input); border-radius: 8px; }
 .formula-matches { color: #15803d; font-weight: 700; }
 .formula-differs { color: var(--ui-accent); font-weight: 700; }
-.import-content-form .import-help-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: 5px; padding: 1px; color: var(--ui-accent); background: transparent; border: 0; border-radius: 50%; vertical-align: middle; cursor: pointer; }
-.import-help-toggle[aria-expanded="true"] { background: var(--ui-soft); box-shadow: 0 0 0 3px var(--ui-soft); }
-.import-field-help { padding: 9px 11px; background: var(--ui-input); border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-solid); border-radius: 8px; color: var(--ui-text); font-size: 13px; line-height: 1.6; }
-.import-field-help p { margin: 4px 0 0; color: var(--ui-muted); }
+.import-help-anchor { position: relative; display: inline-flex; align-items: center; justify-content: center; margin-left: 5px; padding: 1px; color: var(--ui-accent); border-radius: 50%; vertical-align: middle; cursor: help; }
+.import-help-anchor:focus-visible { outline: 2px solid var(--ui-solid); outline-offset: 2px; }
+.import-field-help { position: absolute; z-index: 120; left: 50%; bottom: calc(100% + 9px); display: grid; gap: 4px; width: min(330px, 70vw); padding: 10px 12px; color: var(--ui-text); background: var(--ui-surface); border: 1px solid var(--ui-line); border-left: 3px solid var(--ui-solid); border-radius: 9px; box-shadow: 0 12px 30px #0f172a26; font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left; white-space: normal; opacity: 0; visibility: hidden; transform: translate(-50%, 5px); transition: opacity .14s, transform .14s, visibility .14s; pointer-events: none; }
+.import-help-anchor:hover .import-field-help, .import-help-anchor:focus .import-field-help, .import-help-anchor:focus-within .import-field-help { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.import-field-help > span { color: var(--ui-muted); }
 .import-field-help .import-help-error { color: #b45309; }
 .import-company-config > p { color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
 .import-config-disclosure { margin-top: 22px; border: 1px solid var(--ui-line); border-radius: 13px; background: var(--ui-surface); }

@@ -1,5 +1,6 @@
 import { initialInvoice, calculateInvoice, calculateProduct, VAT_RATES, type InvoiceInput } from "./invoice";
 import { specialProductIssues } from "./special-rules";
+import { vietnamCommune, vietnamProvince } from "./vietnam-admin-units";
 
 export type InvoiceIssue = { field: string; message: string };
 export const INVOICE_LIMITS: Partial<Record<keyof InvoiceInput, number>> = {
@@ -27,6 +28,14 @@ export function invoiceIssues(data: InvoiceInput): InvoiceIssue[] {
   if (data.tax && !/^(?:\d{10}|\d{10}-\d{3}|\d{12})$/.test(data.tax)) add("tax", "CusTaxCode cần 10 số, 10 số-3 số hoặc 12 số.");
   if (!receipt && data.tax) { required("customer", "CusName khi có MST"); required("address", "CusAddress khi có MST"); }
   if (data.identification && !/^(?:\d{9}|\d{12})$/.test(data.identification)) add("identification", "CusIdentification gồm đúng 9 hoặc 12 chữ số.");
+  if (data.provinceCode || data.provinceName) {
+    const province = vietnamProvince(data.provinceCode);
+    if (!province || province.name !== data.provinceName) add("provinceCode", "ProvinceCode và ProvinceName phải khớp danh mục hành chính cố định.");
+  }
+  if (data.communeCode || data.communeName) {
+    const commune = vietnamCommune(data.provinceCode, data.communeCode);
+    if (!commune || commune.name !== data.communeName) add("communeCode", "CommuneCode và CommuneName phải khớp tỉnh và danh mục hành chính cố định.");
+  }
   let extra: Record<string, unknown> = {};
   try { extra = JSON.parse(data.extra) || {}; } catch { /* Extra thường cho phép văn bản. */ }
   const budget = data.budgetaryRelationshipCode || String(extra.MDVQHNSach ?? "");
