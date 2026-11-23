@@ -13,6 +13,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  FileSearch,
   KeyRound,
   Moon,
   Play,
@@ -771,15 +772,10 @@ export function ApiSandbox({ domain }: { domain: string }) {
         </button>
         <div className="side-section">
           <div className="side-heading">SANDBOX</div>
-          <button className={`side-link ${workspaceView === "request" ? "selected" : ""}`}
-            aria-current={workspaceView === "request" ? "page" : undefined}
+          <button className="side-link selected"
+            aria-current="page"
             onClick={() => setWorkspaceView("request")}>
-            <Braces size={16} /> API Request {workspaceView === "request" && <span className="side-dot" />}
-          </button>
-          <button className={`side-link ${workspaceView === "xml" ? "selected" : ""}`}
-            aria-current={workspaceView === "xml" ? "page" : undefined}
-            onClick={() => setWorkspaceView("xml")}>
-            <Braces size={16} />Kiểm tra XML {workspaceView === "xml" && <span className="side-dot" />}
+            <Braces size={16} /> API Request <span className="side-dot" />
           </button>
           <button className="side-link" title="Tính năng đang được chuẩn bị">
             <Clock3 size={16} /> Lịch sử <span className="soon-tag">soon</span>
@@ -810,7 +806,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
           <div className="breadcrumbs">
             <span>Workspace</span>
             <span className="crumb-slash">/</span>
-            <strong>{workspaceView === "request" ? "API Request" : "Kiểm tra XML"}</strong>
+            <strong>API Request</strong>
           </div>
           <div className="top-actions">
             <span className="environment">
@@ -842,17 +838,17 @@ export function ApiSandbox({ domain }: { domain: string }) {
           </div>
         </header>
 
-        <nav className="mobile-workspace-nav" aria-label="Chọn chức năng">
-          <button aria-current={workspaceView === "request" ? "page" : undefined} onClick={() => setWorkspaceView("request")}>API Request</button>
-          <button aria-current={workspaceView === "xml" ? "page" : undefined} onClick={() => setWorkspaceView("xml")}>Kiểm tra XML</button>
+        <nav className="request-workspace-tabs" role="tablist" aria-label="API Request">
+          <button id="request-workspace-tab-request" role="tab" aria-selected={workspaceView === "request"} aria-controls="request-workspace-panel-request" onClick={() => setWorkspaceView("request")}><Braces size={16} aria-hidden="true" />API Request</button>
+          <button id="request-workspace-tab-xml" role="tab" aria-selected={workspaceView === "xml"} aria-controls="request-workspace-panel-xml" onClick={() => setWorkspaceView("xml")}><FileSearch size={16} aria-hidden="true" />Kiểm tra XML</button>
         </nav>
-        <div className="content xml-workspace" hidden={workspaceView !== "xml"}>
+        <div id="request-workspace-panel-xml" role="tabpanel" aria-labelledby="request-workspace-tab-xml" className="content xml-workspace" hidden={workspaceView !== "xml"}>
           <div className="section-top">
             <div><h2>Kiểm tra XML hóa đơn</h2><p>Dán XmlData và xem lỗi theo từng thẻ trước khi gửi API.</p></div>
           </div>
           <XmlValidator currentXml={xmlBody} currentContext={{ api: template, profile: invoice.profile, specialInvoice: invoice.specialInvoice, pattern: invoice.pattern, serial: invoice.serial }} />
         </div>
-        <div className="content" hidden={workspaceView !== "request"}>
+        <div id="request-workspace-panel-request" role="tabpanel" aria-labelledby="request-workspace-tab-request" className="content" hidden={workspaceView !== "request"}>
           {/* ── Template picker ── */}
           <section className="template-section">
             <div className="section-top">

@@ -516,7 +516,10 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .workspace > [hidden] { display: none !important; }
 .xml-workspace .xml-validator-summary { cursor: default; margin: 0; }
 .xml-workspace .body-editor { min-height: 360px; }
-.mobile-workspace-nav { display: none; }
+.request-workspace-tabs { display: flex; gap: 5px; width: fit-content; margin: 18px 24px 0; padding: 5px; background: var(--ui-surface); border: 1px solid var(--ui-line); border-radius: 12px; box-shadow: 0 4px 14px #0f172a0a; }
+.request-workspace-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 0 14px; color: var(--ui-muted); background: transparent; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.request-workspace-tabs button:hover { color: var(--ui-accent); background: var(--ui-soft); }
+.request-workspace-tabs button[aria-selected="true"] { color: #fff; background: var(--ui-solid); box-shadow: 0 3px 9px var(--ui-focus); }
 .invoice-options { margin: 16px 0; padding: 16px; border: 1px solid #dbe5f1; border-radius: 12px; background: #f8fafc; color: #334155; font-size: 13px; line-height: 1.65; }
 .invoice-options h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
 .form-section-label { grid-column: 1 / -1; margin: 12px 0 2px; padding-bottom: 9px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; font-weight: 650; }
@@ -584,9 +587,8 @@ button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
   .gross-help-trigger:focus .gross-help-popover { transform: translateY(0); }
 }
 @media (max-width: 640px) {
-  .mobile-workspace-nav { display: flex; gap: 8px; padding: 12px 14px 0; }
-  .mobile-workspace-nav button { padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
-  .mobile-workspace-nav button[aria-current="page"] { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .request-workspace-tabs { width: calc(100% - 24px); margin: 12px 12px 0; }
+  .request-workspace-tabs button { flex: 1; padding-inline: 8px; }
 }
 
 /* Custom select: keep the trigger and its popup rounded in every browser. */
