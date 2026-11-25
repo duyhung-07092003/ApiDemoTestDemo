@@ -156,6 +156,17 @@
 .invoice-document-preview :is(th, td):nth-child(2) { text-align: left; }
 .invoice-document-preview .document-totals { margin-left: auto; max-width: 380px; grid-template-columns: 1fr auto; }
 .invoice-document-preview > small { display: block; color: var(--ui-muted); }
+.multi-vat-notice { padding: 9px 11px; color: #9a3412 !important; background: #fff7ed; border: 1px solid #fdba74; border-radius: 9px; }
+.multi-vat-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 12px 14px; color: #166534; background: #f0fdf4; border: 1px solid #86efac; border-radius: 11px; }
+.multi-vat-summary > div { display: grid; gap: 3px; }
+.multi-vat-summary span { color: var(--ui-muted); font-size: 12px; }
+.multi-vat-summary.is-warning { color: #9a3412; background: #fff7ed; border-color: #fdba74; }
+.gross-preview { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--ui-line); }
+.gross-preview h4 { margin: 0; color: var(--ui-text); font-size: 16px; }
+.gross-preview p { margin: 3px 0 12px; color: var(--ui-muted); font-size: 12px; }
+.invoice-document-preview .gross-preview tr:not(.gross-active) { color: var(--ui-muted); opacity: .58; }
+.invoice-document-preview .gross-preview tr.gross-active { color: var(--ui-text); background: color-mix(in srgb, var(--ui-solid) 10%, var(--ui-surface)); font-weight: 700; }
+.sandbox-shell[data-theme="dark"] :is(.multi-vat-notice, .multi-vat-summary) { background: var(--ui-input); }
 .sandbox-shell[data-theme="dark"] .request-local-status.ready { color: #86efac; }
 .sandbox-shell[data-theme="dark"] .request-local-status.needs-attention { color: #fcd34d; }
 .sandbox-shell[data-theme="dark"] .request-local-status.ready, .sandbox-shell[data-theme="dark"] .request-local-status.needs-attention { background: var(--ui-input); }
@@ -163,4 +174,5 @@
   .import-content-form .form-grid { grid-template-columns: minmax(0, 1fr); }
   .invoice-document-preview { padding: 14px; margin: 12px; }
   .invoice-document-preview dl { grid-template-columns: 100px minmax(0, 1fr); }
+  .multi-vat-summary { align-items: stretch; flex-direction: column; }
 }

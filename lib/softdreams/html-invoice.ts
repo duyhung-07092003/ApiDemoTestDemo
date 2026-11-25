@@ -1,14 +1,16 @@
 import { calculateInvoice, calculateProduct, createEmptyInvoice, initialInvoice, type InvoiceInput } from "./invoice";
 import { invoiceAmountStatus } from "./invoice-amount-status";
+import { isFinancialLeaseInvoice } from "./multi-vat";
 
 // Only fields exposed by the importInvoice form are forwarded.
 const fields = ["pattern", "serial", "ikey", "payment", "customer", "buyer", "tax", "address", "date", "currency", "exchangeRate", "vatRate", "vatRateOther", "amountInWords", "listAttachNum", "listAttachDate", "identification", "phone", "provinceCode", "provinceName", "communeCode", "communeName", "locationCode", "locationName", "locationAddress"] as const;
 export type InvoiceVatMode = "single" | "multi";
-export function htmlFormIssues(value: InvoiceInput) {
+export function htmlFormIssues(value: InvoiceInput, mode: InvoiceVatMode = "single") {
   const issues: Array<{ field: string; message: string }> = [];
   const amount = invoiceAmountStatus(value);
   if (amount.state === "missing") issues.push({ field: "amountOverride", message: "Amount tổng tiền chưa được tính hoặc chưa nhập. Bấm Tính lại Amount hoặc nhập tổng tiền thanh toán trước khi gửi." });
   if (amount.state === "mismatch") issues.push({ field: "amountOverride", message: `Amount tổng tiền chưa khớp Total + VATAmount (đang nhập ${amount.actual}; đối chiếu ${amount.expected}). Kiểm tra và tính lại tổng tiền.` });
+  if (mode === "multi" && value.pattern.trim() && !value.pattern.trim().startsWith("1")) issues.push({ field: "pattern", message: "Mẫu nhiều thuế TT78 cần Pattern bắt đầu bằng 1." });
   if (value.specialInvoice === "1") value.products.forEach((product, index) => {
     if (product.feature !== "5") return;
     try {
@@ -25,6 +27,7 @@ export function toHtmlVatInvoice(value: InvoiceInput, mode: InvoiceVatMode = "si
   result.profile = "tt78";
   result.convert = 0;
   result.specialInvoice = value.specialInvoice;
+  if (mode === "multi" && isFinancialLeaseInvoice(value)) result.vatRate = -5;
   result.totalOverride = String(totals.total);
   result.vatAmountOverride = String(totals.vat);
   result.amountOverride = String(totals.amount);
@@ -66,7 +69,7 @@ export function buildHtmlInvoiceBatch(invoices: InvoiceInput[], modes: InvoiceVa
       tag("Total", product.totalOverride, 5), ...(mode === "multi" ? [tag("VATRate", product.vat, 5), ...(product.vat === -3 ? [tag("VATRateOther", product.vatRateOther, 5)] : [])] : []), tag("VATAmount", product.vatAmountOverride, 5), tag("Amount", product.amountOverride, 5),
       ...(product.extra ? [tag("Extra", compactJson(product.extra), 5)] : []), "        </Product>",
     ].join("\n")), "      </Products>",
-    tag("Total", value.totalOverride), tag("VATAmount", value.vatAmountOverride), ...(mode === "single" || value.vatRate === -5 ? [tag("VATRate", value.vatRate), ...(value.vatRate === -3 ? [tag("VATRateOther", value.vatRateOther)] : [])] : []), tag("Amount", value.amountOverride), tag("AmountInWords", value.amountInWords),
+    tag("Total", value.totalOverride), tag("VATAmount", value.vatAmountOverride), ...(mode === "single" || isFinancialLeaseInvoice(value) ? [tag("VATRate", mode === "multi" ? -5 : value.vatRate), ...(mode === "single" && value.vatRate === -3 ? [tag("VATRateOther", value.vatRateOther)] : [])] : []), tag("Amount", value.amountOverride), tag("AmountInWords", value.amountInWords),
     ...optional("ListAttachNum", value.listAttachNum), ...optional("ListAttachDate", value.listAttachDate.split("-").reverse().join("/")),
     ...optional("LocationCode", value.locationCode), ...optional("LocationName", value.locationName), ...optional("LocationAddress", value.locationAddress),
     "    </Invoice>", "  </Inv>",

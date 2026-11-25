@@ -41,6 +41,7 @@ import { companyPreview, type CompanySimulation } from "@/lib/softdreams/company
 import type { XmlScope, XmlSelection } from "@/lib/softdreams/xml-selection";
 import { IMPORT_FIELD_HELP } from "@/lib/softdreams/import-field-help";
 import { buildHtmlInvoiceBatch, toHtmlVatInvoice, htmlFormIssues } from "@/lib/softdreams/html-invoice";
+import { recalculateMultiVatProduct, syncMultiVatInvoice } from "@/lib/softdreams/multi-vat";
 import { InvoiceIssuesPopup } from "./invoice-issues-popup";
 import { CompanySimulationSettings } from "./company-simulation-settings";
 import { applyInvoiceRange } from "@/lib/softdreams/invoice-range";
@@ -242,7 +243,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   function setInvoice(update: React.SetStateAction<InvoiceInput>) {
     setInvoices((current) => {
       const updated = typeof update === "function" ? update(current[selectedInvoice]) : update;
-      const next = template === "invoice" ? { ...updated, profile: "tt78", convert: 0, products: invoiceMode === "single" ? updated.products.map((product) => ({ ...product, vat: updated.vatRate, vatRateOther: updated.vatRateOther })) : updated.products } : updated;
+      const next = template === "invoice" ? { ...updated, profile: "tt78", convert: 0, products: invoiceMode === "single" ? updated.products.map((product) => ["2", "3", "4", "5"].includes(product.feature) ? product : ({ ...product, vat: updated.vatRate, vatRateOther: updated.vatRateOther })) : updated.products } : updated;
       return current.map((row, index) => index === selectedInvoice ? next : {
         ...row, ...Object.fromEntries(SHARED_INVOICE_FIELDS.map((key) => [key, next[key]])),
         ...(next.specialInvoice !== row.specialInvoice ? { products: row.products.map((product) => product.feature === "5" ? { ...product, extra: "" } : product) } : {}),
@@ -282,7 +283,16 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const simulatedCompanyReport = useMemo(() => companyPreview(template === "invoice" ? toHtmlVatInvoice(invoice, invoiceMode) : invoice, companySimulation), [invoice, invoiceMode, companySimulation, template]);
   function setInvoiceMode(mode: "single" | "multi") {
     setInvoiceModes((current) => current.map((value, index) => index === selectedInvoice ? mode : value));
-    if (mode === "single") setInvoices((current) => current.map((row, index) => index === selectedInvoice ? { ...row, products: row.products.map((product) => ({ ...product, vat: row.vatRate, vatRateOther: row.vatRateOther })) } : row));
+    setInvoices((current) => current.map((row, index) => {
+      if (index !== selectedInvoice) return row;
+      if (mode === "multi") {
+        const products = row.products.map((product) => recalculateMultiVatProduct({ ...product, vat: row.vatRate, vatRateOther: row.vatRateOther }, row.currency));
+        return syncMultiVatInvoice(row, products);
+      }
+      const first = row.products[0];
+      if (!first) return row;
+      return { ...row, vatRate: first.vat, vatRateOther: first.vatRateOther, products: row.products.map((product) => ["2", "3", "4", "5"].includes(product.feature) ? product : { ...product, vat: first.vat, vatRateOther: first.vatRateOther }) };
+    }));
   }
   const [focusedXml, setFocusedXml] = useState<XmlSelection | null>(null);
   const [explanation, setExplanation] = useState<XmlSelection | null>(null);
@@ -347,7 +357,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
       if ((invoiceModes[index] ?? "single") === "single") return { ...issue, field: productVat[2] === "vatRate" ? "vatRate" : "vatRateOther" };
       return { ...issue, field: `products[${productVat[1]}].${productVat[2] === "vatRate" ? "vat" : "vatRateOther"}` };
     });
-    if (template === "invoice") issues.push(...htmlFormIssues(invoices[index]));
+    if (template === "invoice") issues.push(...htmlFormIssues(invoices[index], invoiceModes[index] ?? "single"));
     if (row.ikey.trim() && invoices.filter((other) => other.ikey.trim() === row.ikey.trim()).length > 1) issues.push({ field: "ikey", message: "Ikey bị trùng với hóa đơn khác trong gói." });
     return issues;
   }), [invoices, htmlInvoices, invoiceModes, template]);
@@ -420,7 +430,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
     // Reference and tax authority codes identify the original invoice and cannot be copied.
     if (copy) { next.fkey = ""; next.taxAuthorityCode = ""; }
     setInvoices((current) => [...current, copy ? next : applyInvoiceRange(next, invoice.specialInvoice)]);
-    setInvoiceModes((current) => [...current, copy ? invoiceMode : "single"]);
+    setInvoiceModes((current) => [...current, invoiceMode]);
     selectInvoice(invoices.length);
   }
   function removeInvoice() {
@@ -1827,7 +1837,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
                   <div className={`request-local-status ${invalidInvoiceCount ? "needs-attention" : "ready"}`}><span className="request-status-icon">{invalidInvoiceCount ? <CircleAlert size={20} aria-hidden="true" /> : <CircleCheckBig size={20} aria-hidden="true" />}</span><div><strong>{invalidInvoiceCount ? `Cần sửa dữ liệu · ${invalidInvoiceCount}/${invoices.length} hóa đơn có lỗi` : "Chưa phát hiện lỗi trong bộ quy tắc tại form"}</strong><p>Chưa gửi API. Chưa xác minh dải, trạng thái Ikey đã tồn tại, danh mục, cấu hình công ty hoặc request gửi đồng thời. Chỉ phản hồi thật mới xác nhận kết quả.</p></div></div>
                   {(companySimulation.notValidate || companySimulation.skipVat8 || companySimulation.from || companySimulation.to || simulatedCompanyReport.pendingVat8) && <details className="request-company-simulation" open><summary>Kết quả giả lập công ty · hóa đơn {selectedInvoice + 1}</summary><p>Bỏ qua {simulatedCompanyReport.skipped} lỗi trường; còn {simulatedCompanyReport.issues.length} lỗi trong phạm vi mô phỏng. Gửi thật vẫn kiểm tra dữ liệu đầy đủ, không gửi các công tắc này.</p>{simulatedCompanyReport.pendingVat8 && <p>Chưa đối chiếu thời hạn thuế 8% vì chưa có cấu hình CheckVat8 của hệ thống.</p>}<ul>{simulatedCompanyReport.issues.map((issue, index) => <li key={index}><code>{issue.field}</code>: {issue.message}</li>)}</ul></details>}
                 </div>}
-                {activeTab === "invoice-preview" && template === "invoice" ? <InvoiceDocumentPreview value={invoice} index={selectedInvoice} /> : activeTab === "request" && isInvoice && prettyPreview ? (
+                {activeTab === "invoice-preview" && template === "invoice" ? <InvoiceDocumentPreview value={invoice} index={selectedInvoice} mode={invoiceMode} /> : activeTab === "request" && isInvoice && prettyPreview ? (
                   <div className="formatted-request">
                     <pre className="request-preview request-metadata">
                       {requestPreview.split("\n\n")[0] + "\n\n"}

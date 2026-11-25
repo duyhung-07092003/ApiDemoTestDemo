@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (htmlForm && (!Array.isArray(modes) || modes.length !== invoices.length || modes.some((mode) => mode !== "single" && mode !== "multi"))) throw new Error("Kiểu mẫu thuế của gói hóa đơn không hợp lệ.");
     if (htmlForm && invoices.some((row) => row.profile !== "tt78" || row.convert !== 0)) throw new Error("Form importInvoice cần mẫu TT78 và bảng mã Unicode.");
     if (htmlForm && invoices.some((row, index) => modes[index] === "single" && row.products.some((product) => product.vat !== row.vatRate || (row.vatRate === -3 && product.vatRateOther !== row.vatRateOther)))) throw new Error("Mẫu một thuế suất cần các dòng dùng cùng thuế suất hóa đơn.");
-    if (htmlForm) invoices.forEach((row, index) => { const issues = htmlFormIssues(row); if (issues.length) throw new Error(`Hóa đơn ${index + 1}: ${issues.map((issue) => issue.message).join(" ")}`); });
+    if (htmlForm) invoices.forEach((row, index) => { const issues = htmlFormIssues(row, modes[index]); if (issues.length) throw new Error(`Hóa đơn ${index + 1}: ${issues.map((issue) => issue.message).join(" ")}`); });
     const invoice = invoices[0];
     headers = new Headers({ "Content-Type": "application/json", Accept: "application/json" });
     headers.set("Authentication", createAuthen(SOFTDREAMS_APIS.invoice.method));
