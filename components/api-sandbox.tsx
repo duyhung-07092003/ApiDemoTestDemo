@@ -1037,17 +1037,18 @@ export function ApiSandbox({ domain }: { domain: string }) {
                       </div>
                     </section>
                     <section className="invoice-batch-manager" aria-label="Danh sách hóa đơn trong gói">
-                      <div className="invoice-batch-heading"><div><h3>Gói hóa đơn <span>{invoices.length}/{MAX_INVOICES_PER_REQUEST}</span></h3><p>Chọn một hóa đơn để nhập; dữ liệu được giữ khi chuyển hóa đơn.</p></div>
+                      <div className="invoice-batch-heading"><div><h3>Gói hóa đơn <span>{invoices.length}/{MAX_INVOICES_PER_REQUEST}</span></h3><p>Chọn một hóa đơn để nhập; dữ liệu được giữ khi chuyển hóa đơn.</p></div></div>
+                      <div className="invoice-batch-toolbar">
                         <div className="invoice-batch-actions">
                           <button type="button" className="subtle-button" disabled={invoices.length >= MAX_INVOICES_PER_REQUEST} onClick={() => addInvoice()}><Plus size={14} />Thêm hóa đơn</button>
                           <button type="button" className="subtle-button" disabled={invoices.length >= MAX_INVOICES_PER_REQUEST} onClick={() => addInvoice(true)}><Copy size={14} />Nhân bản</button>
-                          <button type="button" className="subtle-button" disabled={invoices.length === 1} onClick={removeInvoice}><Trash2 size={14} />Xóa hóa đơn</button>
+                          <button type="button" className="subtle-button" disabled={invoices.length === 1} onClick={removeInvoice}><Trash2 size={14} />Xóa</button>
                         </div>
-                      </div>
-                      <div className="invoice-batch-filters" role="group" aria-label="Lọc danh sách hóa đơn">
-                        <button type="button" data-active={invoiceListFilter === "all" || undefined} onClick={() => changeInvoiceListFilter("all")}>Tất cả <span>{invoices.length}</span></button>
-                        <button type="button" data-active={invoiceListFilter === "errors" || undefined} disabled={!invalidInvoiceCount} onClick={() => changeInvoiceListFilter("errors")}>Có lỗi <span className="danger">{invalidInvoiceCount}</span></button>
-                        <button type="button" data-active={invoiceListFilter === "valid" || undefined} disabled={!validInvoiceCount} onClick={() => changeInvoiceListFilter("valid")}>Đủ dữ liệu <span className="success">{validInvoiceCount}</span></button>
+                        <div className="invoice-batch-filters" role="group" aria-label="Lọc danh sách hóa đơn">
+                          <button type="button" data-active={invoiceListFilter === "all" || undefined} onClick={() => changeInvoiceListFilter("all")}>Tất cả <span>{invoices.length}</span></button>
+                          <button type="button" data-active={invoiceListFilter === "errors" || undefined} disabled={!invalidInvoiceCount} onClick={() => changeInvoiceListFilter("errors")}>Có lỗi <span className="danger">{invalidInvoiceCount}</span></button>
+                          <button type="button" data-active={invoiceListFilter === "valid" || undefined} disabled={!validInvoiceCount} onClick={() => changeInvoiceListFilter("valid")}>Đủ dữ liệu <span className="success">{validInvoiceCount}</span></button>
+                        </div>
                       </div>
                       <label className="invoice-batch-selector" id="invoice-batch-selector">
                         <span>Chọn hóa đơn đang nhập</span>
