@@ -1994,12 +1994,14 @@ function Field({
     <label id={issueField ? `invoice-field-${encodeURIComponent(issueField)}` : undefined} className="field" data-invalid={messages.length > 0 || undefined} data-xml-tag={derivedTag} data-xml-scope={derivedTag ? scope : undefined} data-xml-index={derivedTag ? index : undefined}>
       <span title={label}>
         <span className="field-label-text">{labelBreakAt ? <>{labelBreakAt}<br />{label.slice(labelBreakAt.length).trim()}</> : label}</span>
-        {required && (
-          <b className="required-star" aria-label="bắt buộc">
-            *
-          </b>
-        )}
-        {help && <Help>{help}</Help>}
+        {(required || help) && <span className="field-label-suffix">
+          {required && (
+            <b className="required-star" aria-label="bắt buộc">
+              *
+            </b>
+          )}
+          {help && <Help>{help}</Help>}
+        </span>}
       </span>
       {children}
       {messages.length > 0 && <div className="field-validation-messages">{messages.map((message, index) => <small className="field-validation-message" key={index}>{message}</small>)}</div>}

@@ -179,3 +179,74 @@
   .invoice-document-preview dl { grid-template-columns: 100px minmax(0, 1fr); }
   .multi-vat-summary { align-items: stretch; flex-direction: column; }
 }
+
+/* Unified type scale: keep Times New Roman everywhere and remove legacy 8–10px text. */
+:root {
+  --ui-font: "Times New Roman", Times, serif;
+  --ui-text-xs: 12px;
+  --ui-text-sm: 13px;
+  --ui-text-md: 14px;
+  --ui-text-input: 15px;
+  --ui-text-section: 16px;
+  --ui-text-title: 18px;
+}
+body, button, input, select, textarea, .styled-select-popup, .date-picker-popup { font-family: var(--ui-font); }
+.sandbox-shell { font-family: var(--ui-font); font-size: var(--ui-text-md); line-height: 1.5; }
+
+/* Navigation and page hierarchy. */
+.sandbox-shell .brand { font-size: var(--ui-text-title); line-height: 1.2; }
+.sandbox-shell :is(.workspace-copy strong, .profile b, .side-link) { font-size: var(--ui-text-sm); line-height: 1.35; }
+.sandbox-shell :is(.workspace-copy small, .profile small, .workspace-label, .side-heading, .soon-tag) { font-size: var(--ui-text-xs); line-height: 1.4; }
+.sandbox-shell :is(.breadcrumbs, .eyebrow, .heading-badge, .environment) { font-size: var(--ui-text-sm); line-height: 1.4; }
+.sandbox-shell .page-heading h1 { font-size: 30px; line-height: 1.18; }
+.sandbox-shell .page-heading p { font-size: var(--ui-text-md); line-height: 1.55; }
+
+/* Cards, headings and business descriptions. */
+.sandbox-shell :is(.section-top h2, .card-title h2, .request-preview-card .card-title h2) { font-size: var(--ui-text-title); line-height: 1.3; }
+.sandbox-shell :is(.section-top p, .card-title p, .request-preview-card .card-title p, .invoice-batch-note, .import-tax-description p, .import-full-note) { font-size: var(--ui-text-sm); line-height: 1.6; }
+.sandbox-shell :is(.form-section-label, .import-content-form h3, .invoice-batch-config h3, .invoice-batch-heading h3, .invoice-current-heading) { font-size: var(--ui-text-title); line-height: 1.35; }
+.sandbox-shell :is(.import-section-heading h4, .gross-preview h4, .invoice-options h3, .invoice-options h4) { font-size: var(--ui-text-section); line-height: 1.4; }
+.sandbox-shell :is(.template-meta strong, .api-picker-label, .api-option-meta strong) { font-size: var(--ui-text-md); line-height: 1.35; }
+.sandbox-shell :is(.template-meta small, .api-option-meta small, .template-count, .route-preview, .route-preview code) { font-size: var(--ui-text-xs); line-height: 1.45; }
+.sandbox-shell .compact-url { font-family: var(--ui-font); font-size: var(--ui-text-sm); line-height: 1.4; }
+
+/* Forms: labels, controls and actions share one predictable rhythm. */
+.sandbox-shell :is(.field > span, .field-label, .url-field > label, .config-field > label) { font-size: var(--ui-text-md); line-height: 1.45; }
+.sandbox-shell :is(.field input, .field select, .url-field input, .config-field input, .config-field select, .styled-select-trigger, .date-picker-trigger, .body-editor) { font-size: var(--ui-text-input); line-height: 1.35; }
+.sandbox-shell :is(.subtle-button, .send-button, .tax-mode-tabs button, .request-workspace-tabs button, .result-tabs > button:not(.copy-button), .copy-button, .config-toggle-label) { font-size: var(--ui-text-sm); line-height: 1.25; }
+.sandbox-shell :is(.required-note, .money-input-wrap > span, .field-validation-message, .import-inline-check small, .amount-total-control > small, .amount-words-control > small) { font-size: var(--ui-text-xs); line-height: 1.5; }
+.sandbox-shell .required-star { font-size: var(--ui-text-md); line-height: 1; }
+.sandbox-shell .field > span:first-child { display: flex; align-items: flex-start; gap: 4px; }
+.sandbox-shell .field > span:first-child .field-label-text { flex: 0 1 auto; min-width: 0; }
+.sandbox-shell .field-label-suffix { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; padding-top: 2px; white-space: nowrap; }
+.sandbox-shell .field-label-suffix .required-star, .sandbox-shell .field-label-suffix .help-tip, .sandbox-shell .field-label-suffix .import-help-anchor { margin-left: 0; }
+.sandbox-shell :is(.step-number, .method-badge-sm, .result-status) { font-size: var(--ui-text-xs); }
+.sandbox-shell :is(.method-badge-top, .method-badge-lg, .method-select) { font-size: var(--ui-text-md); }
+.sandbox-shell .tax-mode-header > div:first-child > span { display: block; margin-top: 3px; font-size: var(--ui-text-sm); line-height: 1.5; }
+
+/* Supporting text, tooltips and validation must remain readable. */
+.sandbox-shell :is(.help-tip [role="tooltip"], .template-tooltip, .import-field-help, .gross-help-popover) { font-size: var(--ui-text-sm); line-height: 1.55; }
+.sandbox-shell :is(.status-card, .status-card p, .health-note strong, .health-note p, .result-meta, .response-empty strong, .response-empty p) { font-size: var(--ui-text-sm); line-height: 1.55; }
+.sandbox-shell :is(.response-body-heading, .response-footer, .response-header, .response-headers summary, .page-footer) { font-size: var(--ui-text-xs); line-height: 1.5; }
+.sandbox-shell :is(.request-preview, .response-code, .body-editor) { font-family: var(--ui-font); font-size: var(--ui-text-sm); line-height: 1.75; }
+
+/* Portalled selects and calendar use the same scale even outside .sandbox-shell. */
+.styled-select-popup { font-size: var(--ui-text-md); line-height: 1.45; }
+.styled-select-search input, .styled-select-item, .styled-select-empty { font-size: var(--ui-text-md); }
+.styled-select-status, .date-picker-week { font-size: var(--ui-text-xs); }
+.date-picker-period .styled-select-trigger, .date-picker-days button { font-size: var(--ui-text-input); }
+.date-picker-footer button { font-size: var(--ui-text-md); }
+
+@media (max-width: 640px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .sandbox-shell, .workspace, .content, .template-section, .builder-layout-v2, .form-panel, .right-column { width: 100%; max-width: 100%; min-width: 0; }
+  .template-section .section-top { align-items: stretch; flex-direction: column; gap: 12px; }
+  .template-top-actions { width: 100%; flex-wrap: wrap; }
+  .card-heading { align-items: flex-start; flex-wrap: wrap; }
+  .card-heading .editor-actions { width: 100%; flex-wrap: wrap; }
+  .request-workspace-tabs { max-width: calc(100% - 24px); overflow-x: auto; }
+  .request-workspace-tabs button { min-width: max-content; }
+  .sandbox-shell .page-heading h1 { font-size: 26px; }
+  .sandbox-shell :is(.field > span, .field-label, .url-field > label, .config-field > label) { font-size: var(--ui-text-sm); }
+  .sandbox-shell :is(.field input, .field select, .url-field input, .config-field input, .config-field select, .styled-select-trigger, .date-picker-trigger) { font-size: var(--ui-text-md); }
+}
