@@ -94,6 +94,9 @@
 .import-location-fields .field[data-xml-tag="LocationAddress"] { grid-column: 1 / -1; }
 .import-content-form .field[data-request-selected] > :is(input, .styled-select-trigger, .date-picker-trigger),
 .import-content-form .field[data-request-selected] > div > input { outline: 2px solid var(--ui-solid); outline-offset: 1px; }
+.field[data-issue-focused], #invoice-field-products[data-issue-focused], #invoice-field-specialInvoice[data-issue-focused] { position: relative; z-index: 1; border-radius: 10px; outline: 3px solid #f97316; outline-offset: 5px; background: color-mix(in srgb, #f97316 9%, transparent); animation: issue-field-pulse .7s ease-out; }
+.field[data-issue-focused] > :is(input, .styled-select-trigger, .date-picker-trigger), .field[data-issue-focused] > div > input { border-color: #f97316 !important; box-shadow: 0 0 0 3px #f9731626; }
+@keyframes issue-field-pulse { from { outline-width: 7px; outline-color: #fb923c; } to { outline-width: 3px; outline-color: #f97316; } }
 .import-content-form .field[data-xml-tag="AmountInWords"] { grid-column: 1 / -1; }
 .request-preview [data-xml-preview-tag] { cursor: pointer; }
 .request-preview [data-xml-preview-tag]:hover { background: #f9731638; border-radius: 3px; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Braces,
@@ -239,6 +239,7 @@ export function ApiSandbox({ domain }: { domain: string }) {
   const [apiKeyName, setApiKeyName] = useState("x-api-key");
   const [invoices, setInvoices] = useState<InvoiceInput[]>([{ ...initialInvoice, amountOverride: String(calculateInvoice(initialInvoice).amount) }]);
   const [selectedInvoice, setSelectedInvoice] = useState(0);
+  const [pendingIssueFocus, setPendingIssueFocus] = useState<{ invoiceIndex: number; field: string } | null>(null);
   const invoice = invoices[selectedInvoice];
   function setInvoice(update: React.SetStateAction<InvoiceInput>) {
     setInvoices((current) => {
@@ -410,18 +411,27 @@ export function ApiSandbox({ domain }: { domain: string }) {
     requestAnimationFrame(() => document.getElementById("invoice-batch-selector")?.scrollIntoView({ block: "nearest", inline: "nearest" }));
   }
   function focusInvoiceIssue(index: number, issue: { field: string }) {
-    selectInvoice(index);
     const productIndex = issue.field.match(/^products\[(\d+)\]\.extra$/)?.[1];
     const targetField = productIndex !== undefined && invoices[index].specialInvoice === "0" ? `products[${productIndex}].feature` : issue.field;
     if (targetField !== issue.field) setExplanation({ tag: "Feature", scope: "product", index: Number(productIndex), invoiceIndex: index });
-    requestAnimationFrame(() => {
-      const field = document.getElementById(`invoice-field-${encodeURIComponent(targetField)}`);
-      let details = field?.closest("details");
-      while (details) { details.open = true; details = details.parentElement?.closest("details") ?? null; }
-      field?.scrollIntoView({ behavior: "smooth", block: "center" });
-      field?.querySelector<HTMLElement>('input:not([type="hidden"]):not([readonly]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
-    });
+    else setExplanation(null);
+    setPendingIssueFocus({ invoiceIndex: index, field: targetField });
+    selectInvoice(index);
   }
+  useEffect(() => {
+    if (!pendingIssueFocus || pendingIssueFocus.invoiceIndex !== selectedInvoice) return;
+    const frame = requestAnimationFrame(() => {
+      document.querySelectorAll<HTMLElement>("[data-issue-focused]").forEach((element) => element.removeAttribute("data-issue-focused"));
+      const field = document.getElementById(`invoice-field-${encodeURIComponent(pendingIssueFocus.field)}`);
+      if (!field) return;
+      let details = field.closest("details");
+      while (details) { details.open = true; details = details.parentElement?.closest("details") ?? null; }
+      field.setAttribute("data-issue-focused", "true");
+      field.scrollIntoView({ behavior: "smooth", block: "center" });
+      field.querySelector<HTMLElement>('input:not([type="hidden"]):not([readonly]), textarea, .styled-select-trigger, .date-picker-trigger')?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pendingIssueFocus, selectedInvoice]);
   function addInvoice(copy = false) {
     if (invoices.length >= MAX_INVOICES_PER_REQUEST || loading) return;
     const next = copy ? structuredClone(invoice) : createEmptyInvoice();
