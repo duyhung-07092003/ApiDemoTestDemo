@@ -110,12 +110,13 @@
 .import-inline-check { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; color: var(--ui-text); font-size: 14px; line-height: 1.5; }
 .import-inline-check > input { flex-shrink: 0; width: 16px; height: 16px; margin-top: 3px; accent-color: var(--ui-solid); }
 .import-full-note { grid-column: 1 / -1; }
-.amount-words-control { display: grid; gap: 7px; }
+.amount-words-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px 8px; }
 .amount-total-control { display: grid; gap: 7px; }
 .amount-total-control > button { justify-self: start; }
 .amount-total-control > small { color: var(--ui-muted); font-size: 12px; line-height: 1.5; }
-.amount-words-control > button { justify-self: start; }
-.amount-words-control > small { color: #b91c1c; }
+.amount-words-control > input { min-width: 0; }
+.amount-words-control > button { align-self: stretch; min-height: 44px; padding-inline: 12px; }
+.amount-words-control > small { grid-column: 1 / -1; color: #b91c1c; }
 .import-products { margin-top: 24px; }
 .import-product { margin: 14px 0; padding: 14px; border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-surface); }
 .import-product > .import-section-heading { margin-top: 0; }
