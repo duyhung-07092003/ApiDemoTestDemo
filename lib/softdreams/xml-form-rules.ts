@@ -33,7 +33,8 @@ export function xmlFormIssues(invoice: Element, wrapper: Element, options: XmlOp
   });
   const fees = children(invoice, "InvoiceFees")[0];
   data.fees = (fees ? children(fees, "InvoiceFee") : []).map((node) => ({ name: value(node, "Name"), amount: value(node, "Amount"), feeRate: value(node, "FeeRate"), vatRate: value(node, "VATRate"), vatRateOther: value(node, "VATRateOther"), vatAmount: value(node, "VATAmount"), totalCharge: value(node, "TotalCharge") }));
-  return invoiceIssues(data).map((issue) => {
+  const hasInvoiceVatRate = value(invoice, "VATRate") !== "";
+  return invoiceIssues(data).filter((issue) => !(options.vatMode === "multi" && !hasInvoiceVatRate && ["vatRate", "vatRateOther"].includes(issue.field))).map((issue) => {
     const product = /^products\[(\d+)\](?:\.(.+))?$/.exec(issue.field);
     const fee = /^fees\[(\d+)\]\.(.+)$/.exec(issue.field);
     const issuePath = product ? path + "/Products/Product[" + (Number(product[1]) + 1) + "]" + (product[2] ? "/" + (productTags[product[2]] ?? product[2]) : "")

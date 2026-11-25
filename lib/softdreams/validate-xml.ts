@@ -1,6 +1,6 @@
 import { xmlFormIssues } from "./xml-form-rules";
 export type XmlIssue = { level: "error" | "warning"; path: string; message: string; suggestion: string };
-export type XmlOptions = { household: boolean; businessCustomer: boolean; specialGoods: boolean; api?: string; profile?: string; specialInvoice?: string; pattern?: string; serial?: string };
+export type XmlOptions = { household: boolean; businessCustomer: boolean; specialGoods: boolean; api?: string; profile?: string; specialInvoice?: string; pattern?: string; serial?: string; vatMode?: "single" | "multi" };
 export type XmlReport = { issues: XmlIssue[]; invoices: number; formatted: string; normalizedXml?: string; extractedFromRequest?: boolean };
 const children = (node: Element, name: string) => Array.from(node.children).filter((child) => child.tagName === name);
 const text = (node: Element, name: string) => children(node, name)[0]?.textContent?.trim() || "";
@@ -15,6 +15,7 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
   const error = (path: string, message: string, suggestion: string) => add("error", path, message, suggestion);
   const warn = (path: string, message: string, suggestion: string) => add("warning", path, message, suggestion);
   const root = document.documentElement;
+  const vatMode = options.vatMode ?? "single";
   if (!root || root.tagName !== "Invoices" || root.namespaceURI) {
     error("/", "Thẻ gốc phải là Invoices và không có namespace.", "Dùng <Invoices><Inv><Invoice>...</Invoice></Inv></Invoices>.");
     return { issues, invoices: 0, formatted: "" };
@@ -101,23 +102,29 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
         const rate = number(invoice, "ExchangeRate", path);
         if (rate !== undefined && rate <= 0) error(path + "/ExchangeRate", "Tỷ giá phải lớn hơn 0.", "Nhập tỷ giá hợp lệ.");
       }
-      const checkVat = (node: Element, nodePath: string) => {
-        const rate = number(node, "VATRate", nodePath, false) ?? (node !== invoice ? number(invoice, "VATRate", path, false) : undefined);
+      const checkVat = (node: Element, nodePath: string, inherited?: { rate: number; other: string }) => {
+        const ownRate = text(node, "VATRate");
+        const rate = ownRate ? number(node, "VATRate", nodePath, false) : inherited?.rate;
         if (rate === -3) {
-          const other = number(node, "VATRateOther", nodePath);
+          const ownOther = text(node, "VATRateOther");
+          const otherText = ownRate ? ownOther : inherited?.other ?? "";
+          const other = ownRate ? number(node, "VATRateOther", nodePath) : (otherText ? Number(otherText) : undefined);
           const otherFormat = options.pattern?.trim().toUpperCase()[4] === "M" ? /^(?:\d{1,2}(?:\.\d{0,2})?|\.\d{1,2})$/ : /^\d{1,2}(?:\.\d{1,2})?$/;
-          if (other !== undefined && (other < 0 || other > 99.99 || !otherFormat.test(text(node, "VATRateOther")))) error(nodePath + "/VATRateOther", "Thuế suất khác cần từ 0 đến 99.99, tối đa 2 số thập phân.", "Nhập VATRateOther theo phần trăm.");
+          if (other === undefined || !Number.isFinite(other)) error(nodePath + "/VATRateOther", "Thiếu VATRateOther cho thuế suất KHÁC (-3).", ownRate ? "Bổ sung VATRateOther tại cùng cấp với VATRate." : "Bổ sung VATRateOther ở cấp hóa đơn để dòng kế thừa.");
+          else if (other < 0 || other > 99.99 || !otherFormat.test(otherText)) error(nodePath + "/VATRateOther", "Thuế suất khác cần từ 0 đến 99.99, tối đa 2 số thập phân.", "Nhập VATRateOther theo phần trăm.");
         } else if (rate !== undefined && ![-7, -6, -5, -3, -2, -1, 0, 5, 8, 10].includes(rate)) {
           warn(nodePath + "/VATRate", "Mã thuế suất chưa có quy tắc đối chiếu trong bộ kiểm tra.", "Đối chiếu phụ lục VII.3 của mẫu hóa đơn; không tự đổi mã thuế.");
         }
         return rate;
       };
-      checkVat(invoice, path);
+      const invoiceVatText = text(invoice, "VATRate");
+      const invoiceVat = checkVat(invoice, path);
       const containers = children(invoice, "Products");
       const products = containers[0] ? children(containers[0], "Product") : [];
       if (!products.length) error(path + "/Products", "Không có dòng Product.", "Bổ sung <Products><Product>...</Product></Products>.");
       if (containers[0]) for (const child of Array.from(containers[0].children)) if (child.tagName !== "Product") error(path + "/Products/" + child.tagName, "Thẻ con của Products phải là Product.", "Đổi tên hoặc chuyển thẻ về đúng vị trí.");
       let sumTotal = 0, sumVat = 0, sumAmount = 0, canSum = true;
+      const effectiveRates: Array<number | undefined> = [];
       products.forEach((product, i) => {
         const pp = path + "/Products/Product[" + (i + 1) + "]";
         inspect(product, productTags, pp);
@@ -125,11 +132,21 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
         const total = number(product, "Total", pp, false);
         const vat = number(product, "VATAmount", pp, false);
         const amount = number(product, "Amount", pp);
-        const rate = checkVat(product, pp);
-        if (rate === undefined) error(pp + "/VATRate", "Thiếu VATRate ở cả dòng và hóa đơn.", "Gửi VATRate tại dòng hoặc cấp Invoice.");
-        if (rate !== undefined && !Number.isInteger(rate)) error(pp + "/VATRate", "VATRate dòng phải là số nguyên.", "Dùng mã -7,-6,-5,-3,-2,-1,0,5,8,10.");
+        const ownRateText = text(product, "VATRate");
         const feature = text(product, "Feature");
+        const inheritedVat = invoiceVat !== undefined ? { rate: invoiceVat, other: text(invoice, "VATRateOther") } : undefined;
+        const parsedRate = ownRateText ? checkVat(product, pp) : undefined;
+        const rate = parsedRate ?? (feature ? 0 : invoiceVat);
+        effectiveRates.push(rate);
+        if (rate === undefined) error(pp + "/VATRate", "Thiếu VATRate ở cả dòng và hóa đơn; API có thể trả lỗi 500.", "Gửi VATRate tại dòng hoặc cấp Invoice.");
+        else if (!ownRateText && invoiceVat === -3 && !feature) checkVat(product, pp, inheritedVat);
+        if (rate !== undefined && !Number.isInteger(rate)) error(pp + "/VATRate", "VATRate dòng phải là số nguyên.", "Dùng mã -7,-6,-5,-3,-2,-1,0,5,8,10.");
         if (feature && !["1", "2", "3", "4", "5"].includes(feature)) error(pp + "/Feature", "Feature không hợp lệ.", "Chọn 1–5 hoặc bỏ thẻ để API tự suy.");
+        if (vatMode === "multi" && !ownRateText) {
+          if (feature) warn(pp + "/VATRate", "Mẫu nhiều thuế: dòng có Feature nhưng thiếu VATRate sẽ được API xử lý là 0%, không kế thừa thuế hóa đơn.", "Gửi VATRate riêng trên từng Product để đúng nhóm thuế.");
+          else if (invoiceVat !== undefined) warn(pp + "/VATRate", "Mẫu nhiều thuế: dòng đang kế thừa VATRate cấp hóa đơn.", "Nên gửi VATRate riêng trên từng Product để thể hiện đúng thuế suất của dòng.");
+        }
+        if (!text(product, "VATAmount") && (ownRateText || feature)) warn(pp + "/VATAmount", "API không tự tính VATAmount cho dòng này; thiếu thẻ sẽ lưu tiền thuế bằng 0.", "Gửi VATAmount của dòng, kể cả khi giá trị bằng 0.");
         const discountPercent = number(product, "Discount", pp, false);
         if (discountPercent !== undefined && discountPercent > 100) error(pp + "/Discount", "Discount vượt 100%, có thể gây lỗi lưu 500.", "Giảm tỷ lệ chiết khấu xuống tối đa 100%.");
         const quantity = number(product, "ProdQuantity", pp, false);
@@ -148,6 +165,14 @@ export function validateXmlDocument(document: Document, options: XmlOptions): Xm
         if (total === undefined || vat === undefined || amount === undefined) canSum = false;
         sumTotal += total ?? 0; sumVat += vat ?? 0; sumAmount += amount ?? 0;
       });
+      if (vatMode === "single") {
+        if (!invoiceVatText) warn(path + "/VATRate", "Mẫu một thuế nên khai VATRate cấp hóa đơn làm thuế suất chung.", "Bổ sung VATRate ở Invoice; các dòng không khai VATRate sẽ kế thừa giá trị này.");
+        if (invoiceVat !== undefined && effectiveRates.some((rate) => rate !== undefined && rate !== invoiceVat)) warn(path + "/Products", "Có dòng hàng dùng thuế suất khác VATRate chung của hóa đơn.", "API có thể vẫn nhận nhưng không còn đúng cách tích hợp mẫu một thuế suất; đồng nhất VATRate các dòng hoặc chọn mẫu nhiều thuế.");
+      } else {
+        if (options.pattern?.trim() && !options.pattern.trim().startsWith("1")) error("/Request/Pattern", "Mẫu nhiều thuế TT78 cần Pattern bắt đầu bằng 1.", "Chọn đúng Pattern của dải hóa đơn GTGT nhiều thuế.");
+      }
+      const hasFinancialLease = invoiceVat === -5 || effectiveRates.includes(-5);
+      if (hasFinancialLease && (invoiceVat !== -5 || effectiveRates.some((rate) => rate !== -5))) error(path + "/VATRate", "Hóa đơn cho thuê tài chính không được trộn thuế suất -5 với thuế suất khác.", "Gửi VATRate=-5 ở hóa đơn và bảo đảm tất cả Product cùng thuế suất -5.");
       const total = number(invoice, "Total", path);
       const vat = number(invoice, "VATAmount", path, false);
       const amount = number(invoice, "Amount", path);

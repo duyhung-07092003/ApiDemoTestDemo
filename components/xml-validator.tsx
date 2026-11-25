@@ -6,7 +6,7 @@ import { validateXmlData, type XmlOptions, type XmlReport } from "@/lib/softdrea
 import { StyledSelect } from "./styled-select";
 import { SOFTDREAMS_APIS } from "@/lib/softdreams/endpoints";
 
-export function XmlValidator({ currentXml, currentContext }: { currentXml: string; currentContext: Pick<XmlOptions, "api" | "profile" | "specialInvoice" | "pattern" | "serial"> }) {
+export function XmlValidator({ currentXml, currentContext }: { currentXml: string; currentContext: Pick<XmlOptions, "api" | "profile" | "specialInvoice" | "pattern" | "serial" | "vatMode"> }) {
   const [source, setSource] = useState("");
   const [options, setOptions] = useState<XmlOptions>({ household: false, businessCustomer: false, specialGoods: false, ...currentContext });
   const configure = (next: Partial<XmlOptions>) => { setOptions((previous) => ({ ...previous, ...next })); setReport(null); setCopied(false); };
@@ -21,18 +21,19 @@ export function XmlValidator({ currentXml, currentContext }: { currentXml: strin
     <section className="response-card xml-validator" id="xml-validator" aria-labelledby="xml-validator-heading">
       <h3 className="xml-validator-summary" id="xml-validator-heading">
         <span className="xml-validator-icon"><ClipboardCheck size={20} /></span>
-        <span>Kiểm tra dữ liệu hóa đơn<small>{options.api === "invoice" ? "importInvoice" : options.api} · {options.profile === "receipt" ? "Receipt" : options.profile?.toUpperCase()} · XML Validator</small></span>
+        <span>Kiểm tra dữ liệu hóa đơn<small>{options.api === "invoice" ? "importInvoice" : options.api} · {options.profile === "receipt" ? "Receipt" : options.vatMode === "multi" ? "TT78 nhiều thuế" : "TT78 một thuế"} · XML Validator</small></span>
         <span className="xml-validator-badge">Kiểm tra tại máy</span>
       </h3>
       <div className="xml-validator-content">
         <div className="form-grid">
           <label className="field"><span>API cần kiểm tra</span><StyledSelect value={options.api ?? "invoice"} onChange={(api) => configure({ api })} options={Object.entries(SOFTDREAMS_APIS).map(([value, api]) => ({ value, label: api.path }))} /></label>
           <label className="field"><span>Loại form / mẫu hóa đơn</span><StyledSelect value={options.profile ?? "tt78"} onChange={(profile) => configure({ profile, ...(profile === "receipt" ? { specialInvoice: "0", specialGoods: false } : {}) })} options={[{ value: "tt78", label: "TT78 · GTGT / bán hàng" }, { value: "receipt", label: "Biên lai · Receipt" }, { value: "legacy", label: "Mẫu cũ · chưa hỗ trợ" }, { value: "pit", label: "Chứng từ TNCN · chưa hỗ trợ" }]} /></label>
+          <label className="field"><span>Kiểu thuế của form</span><StyledSelect value={options.vatMode ?? "single"} disabled={options.profile === "receipt"} onChange={(vatMode) => configure({ vatMode: vatMode as "single" | "multi" })} options={[{ value: "single", label: "Mẫu 1 · Một thuế suất" }, { value: "multi", label: "Mẫu nhiều thuế suất" }]} /></label>
           <label className="field"><span>Hàng hóa đặc trưng của dải</span><StyledSelect value={options.specialInvoice ?? "0"} disabled={options.profile === "receipt"} onChange={(specialInvoice) => configure({ specialInvoice, specialGoods: specialInvoice === "1" })} options={[{ value: "0", label: "Thông thường" }, { value: "1", label: "1 · Mua bán xe" }, { value: "2", label: "2 · Dịch vụ vận chuyển" }, { value: "3", label: "3 · Vận chuyển trên TMĐT" }]} /></label>
           <label className="field"><span>Pattern · kiểm tra năm / MTT</span><input value={options.pattern ?? ""} onChange={(event) => configure({ pattern: event.target.value })} /></label>
           <label className="field"><span>Serial · ký hiệu dải</span><input value={options.serial ?? ""} onChange={(event) => configure({ serial: event.target.value })} /></label>
         </div>
-        <p className="xml-validator-note">Dán request JSON: Pattern/Serial trong request được ưu tiên. Dán XML thuần: dùng cấu hình ở trên. Loại một/nhiều thuế suất dùng chung quy tắc đầu vào. Dải thực tế và cấu hình công ty cần được xác nhận trên Softdreams.</p>
+        <p className="xml-validator-note">Dán request JSON: Pattern/Serial trong request được ưu tiên. Chọn Một thuế hoặc Nhiều thuế để kiểm tra cách khai VATRate/VATAmount trên từng dòng. Quy tắc API dùng chung; điểm khác cách tích hợp nhưng API vẫn nhận sẽ được ghi là cảnh báo.</p>
         <p>Dán XML thuần hoặc cả request HTTP/JSON có trường XmlData để tìm thẻ thiếu, sai cấu trúc và chênh lệch số tiền. Chỉ kiểm tra trên trình duyệt.</p>
         <label htmlFor="xml-validation-source">XML hoặc request HTTP/JSON chứa XmlData</label>
         <textarea ref={editor} id="xml-validation-source" className="body-editor" spellCheck={false} value={source}
