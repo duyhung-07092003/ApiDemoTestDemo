@@ -108,6 +108,15 @@
 .import-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ui-line); }
 .import-section-heading h4 { margin: 0; font-size: 16px; }
 .import-section-heading > .styled-select-trigger { max-width: 240px; }
+.import-content-form > .import-section-heading,
+.import-products > h3,
+.import-conditional-fields > .import-section-heading { padding: 10px 12px; border: 1px solid #d7dee9; border-left: 4px solid var(--ui-accent); border-radius: 10px; background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 72%); box-shadow: 0 1px 2px #0f172a0d; }
+.import-products > h3 { margin: 0 0 12px; color: #111827; font-size: var(--ui-text-title); font-weight: 800; line-height: 1.35; }
+.import-content-form > .import-section-heading h3,
+.import-conditional-fields > .import-section-heading h3 { margin: 0; color: #111827; font-weight: 800; }
+.import-content-form > .import-section-heading code,
+.import-products > h3 code,
+.import-conditional-fields > .import-section-heading code { color: #9a3412; font: inherit; font-weight: 800; }
 .import-tax-description p, .import-optional p, .import-full-note { margin: 8px 0; color: var(--ui-muted); font-size: 13px; line-height: 1.6; }
 .import-content-form .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .import-content-form .field code { font: inherit; font-weight: 700; }
